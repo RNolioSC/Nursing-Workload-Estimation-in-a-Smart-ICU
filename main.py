@@ -1,13 +1,13 @@
 from pontosNAS import PontosNAS
 import math
-import numpy as np
 import scipy.stats as stats
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import random
+import datetime
+from Atendimento import Atendimento
+import csv
 
-def escolherAtividades():
+
+def escolher_atividades():
     atividades = [random.choice(['1a', '1b', '1c']),
                   '2', '3',
                   random.choice(['4a', '4b', '4c']),
@@ -20,39 +20,51 @@ def escolherAtividades():
     return atividades
 
 
-def executarAtendimento():
+def simular_nas(sigma, atividades):
     resultados = {}
-    for i in PontosNAS:
-        try:
-            aux = resultados[i]
-        except KeyError:
-            aux = []
+    for j in atividades:
+        aux = stats.norm.rvs(PontosNAS[j], sigma)
+        resultados[j] = aux
+    return resultados
 
-        aux.append(stats.norm.rvs(PontosNAS[i], sigma))
-        resultados[i] = aux
 
-    print(resultados)
+def exportar_antendimentos(atendimentos):
+    with open('atendimentos.csv', 'w', newline='') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+
+        filewriter.writerow(['Paciente', 'Dia', 'Horario', 'Atividade', 'Pontuacao'])
+
+        for atendimento in atendimentos:
+            aux = [atendimento.get_paciente_str(), atendimento.get_dia_str(), atendimento.get_horario_str(),
+                   atendimento.get_atividade_str(), atendimento.get_pontuacao_str()]
+
+            filewriter.writerow(aux)
+
+    return
 
 
 if __name__ == '__main__':
 
-    # print(PontosNAS)
-    media = PontosNAS['1a']
     variancia = 1
-
     sigma = math.sqrt(variancia)
-    # = np.linspace(media - 3 * sigma, media + 3 * sigma, 100)
-    #pdf = stats.norm.pdf(x_axis, media, sigma)
-    #df = pd.DataFrame({'probability': pdf, 'x': x_axis})
-    #sns.lineplot(data=df, x='x', y='probability')
-    #plt.show()
 
-    i=0
-    while i<10:
-    #    print(x_axis.item(i), "  =  ", pdf.item(i))
-        #print(stats.norm.rvs(media, sigma))
-    #    print(escolherAtividades())
-        i=i+1
+    pacientes = ['p1', 'p2', 'p3']
+    data_inicio = datetime.datetime(year=2022, month=1, day=1)
+    total_dias = 2
 
-    executarAtendimento()
+    dias = []
+    for i in range(0, total_dias):
+        dias.append(data_inicio+datetime.timedelta(i))
 
+    atendimentos = []
+    for paciente in pacientes:
+        for dia in dias:
+            atividades = escolher_atividades()
+            lista_nas = simular_nas(sigma, atividades)
+
+            for atividade in atividades:
+                atendimento = Atendimento(paciente, dia, atividade, lista_nas[atividade])
+                atendimentos.append(atendimento)
+
+    #print(atendimentos)
+    exportar_antendimentos(atendimentos)
