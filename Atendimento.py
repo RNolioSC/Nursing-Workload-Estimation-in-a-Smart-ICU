@@ -1,6 +1,6 @@
 
 class Atendimento:
-    def __init__(self, paciente, data, atividade, pontuacao, enfermeiro):
+    def __init__(self, paciente, data, atividade, pontuacao, enfermeiro):  # TODO: adicionar tempo medio
         self.paciente = paciente
         self.data = data
         self.atividade = atividade

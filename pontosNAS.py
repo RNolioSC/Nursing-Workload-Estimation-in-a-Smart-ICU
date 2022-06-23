@@ -1,7 +1,7 @@
 PontosNAS = {
-        '1a': 4.5,
-        '1b': 12.1,
-        '1c': 19.6,
+        '1a': 4.5,  #90 tempo medio, ver traducao. adicionar tempo total
+        '1b': 12.1,  #120
+        '1c': 19.6,  #150
         '2': 4.3,
         '3': 5.6,
         '4a': 4.1,
