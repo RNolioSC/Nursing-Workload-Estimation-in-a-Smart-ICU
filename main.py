@@ -36,7 +36,7 @@ def escolher_atividades_medio_risco():
 
 
 def escolher_atividades_alto_risco():
-    atividades = ['1c', '2', '3', '4c', '5', '6c', '7c', '8c',
+    atividades = ['1c', '2', '3', '4c', '5', '6c', '7b', '8c',
                   '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']
 
     return atividades
@@ -54,12 +54,14 @@ def exportar_antendimentos(atendimentos):
     with open('atendimentos.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
-        filewriter.writerow(['Paciente', 'Dia', 'Horario', 'Atividade', 'Pontuacao', 'Enfermeiro'])
+        filewriter.writerow(['Paciente', 'Dia Inicio', 'Horario Inicio', 'Dia Fim', 'Horario Fim',
+                             'Atividade', 'Pontuacao', 'Enfermeiro', 'Tecnico'])
 
         for atendimento in atendimentos:
-            aux = [atendimento.get_paciente_str(), atendimento.get_dia_str(), atendimento.get_horario_str(),
-                   atendimento.get_atividade_str(), atendimento.get_pontuacao_str(),
-                   atendimento.get_enfermeiro().get_codigo()]
+            aux = [atendimento.get_paciente_str(), atendimento.get_dia_inicio_str(), atendimento.get_horario_inicio_str(),
+                   atendimento.get_dia_fim_str(), atendimento.get_dia_fim_str(), atendimento.get_atividade_str(),
+                   atendimento.get_pontuacao_str(), atendimento.get_enfermeiro().get_codigo(),
+                   atendimento.get_tecnico().get_codigo()]
 
             filewriter.writerow(aux)
 
@@ -121,7 +123,7 @@ def simular_tecnicos(quantidade):
 def simular_atendimentos():
     dias = []
     for i in range(0, total_dias):
-        dias.append(data_inicio + datetime.timedelta(i))
+        dias.append(data_inicio_sim + datetime.timedelta(i))
 
     atendimentos = []
     for paciente in pacientes:
@@ -129,10 +131,15 @@ def simular_atendimentos():
         for dia in dias:
             atividades = escolher_atividades()
             lista_nas = simular_nas(sigma, atividades)
-            enfermeiro = random.choice(enfermeiros)  #TODO: mudar
+            enfermeiro = random.choice(enfermeiros)
+            tecnico = random.choice(tecnicos)
 
             for atividade in atividades:
-                atendimento = Atendimento(paciente, dia, atividade, lista_nas[atividade], enfermeiro)
+                # TODO: ajustar quais atividades sao executadas por quem, e o tempo requerido
+                data_inicio = dia
+                data_fim = dia
+                atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                                          enfermeiro, tecnico)
                 atendimentos.append(atendimento)
 
     # print(atendimentos)
@@ -160,17 +167,36 @@ def simular_pacientes(quantidade):
     pacientes = []
     for j in range(quantidade):
         nome = 'paciente' + str(j + 1)
+        pacientes.append(nome)
 
     return pacientes
 
 
+def pontos_to_minutos(pontos):
+    return pontos * 14.4
+
+
+def minutos_to_pontos(minutos):
+    return minutos / 14.4
+
+
 if __name__ == '__main__':
+
+    #test = data_inicio_sim + datetime.timedelta(minutes=14.4)
+    #print(test)
+
+    # test2 = escolher_atividades_alto_risco()
+    # t = 0 # pontos
+    # for a in test2:
+    #     t = t+PontosNAS[a]
+    # print('tempo total horas= '+str(pontos_to_minutos(t)/60))
+    # raise SystemExit(0)
 
     variancia = 1
     sigma = math.sqrt(variancia)
 
     pacientes = simular_pacientes(3)
-    data_inicio = datetime.datetime(year=2022, month=1, day=1)
+    data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
     total_dias = 5
 
     enfermeiros = simular_enfermeiros(7)
@@ -179,6 +205,5 @@ if __name__ == '__main__':
     exportar_enfermeiros()
     atendimentos = simular_atendimentos()
     exportar_antendimentos(atendimentos)
-    # ok: checar negativos na simulacao nas
-    # TODO: adicionar horario de inicio e de fim
+    # TODO: adicionar horario de inicio e de fim: verificar tempo
     # TODO: gerar csv com tag enfermeiro, nome e total de pontos NAS por dia
