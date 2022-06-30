@@ -58,10 +58,21 @@ def exportar_antendimentos(atendimentos):
                              'Atividade', 'Pontuacao', 'Enfermeiro', 'Tecnico'])
 
         for atendimento in atendimentos:
-            aux = [atendimento.get_paciente_str(), atendimento.get_dia_inicio_str(), atendimento.get_horario_inicio_str(),
-                   atendimento.get_dia_fim_str(), atendimento.get_dia_fim_str(), atendimento.get_atividade_str(),
-                   atendimento.get_pontuacao_str(), atendimento.get_enfermeiro().get_codigo(),
-                   atendimento.get_tecnico().get_codigo()]
+            aux = [atendimento.get_paciente_str(), atendimento.get_dia_inicio_str(),
+                   atendimento.get_horario_inicio_str(),
+                   atendimento.get_dia_fim_str(), atendimento.get_horario_fim_str(),
+                   atendimento.get_atividade_str(),
+                   atendimento.get_pontuacao_str()]
+
+            if atendimento.get_enfermeiro() is None:
+                aux.append('')
+            else:
+                aux.append(atendimento.get_enfermeiro().get_codigo())
+
+            if atendimento.get_tecnico() is None:
+                aux.append('')
+            else:
+                aux.append(atendimento.get_tecnico().get_codigo())
 
             filewriter.writerow(aux)
 
@@ -134,15 +145,33 @@ def simular_atendimentos():
             enfermeiro = random.choice(enfermeiros)
             tecnico = random.choice(tecnicos)
 
-            for atividade in atividades:
-                # TODO: ajustar quais atividades sao executadas por quem, e o tempo requerido
-                data_inicio = dia
-                data_fim = dia
-                atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
-                                          enfermeiro, tecnico)
-                atendimentos.append(atendimento)
+            data_inicio = dia + datetime.timedelta(minutes=random.randint(0, 30))
+            data_fim = data_inicio
 
-    # print(atendimentos)
+            for atividade in atividades:
+
+                # atendimento comeca depos do fim do anterior
+                data_inicio = data_fim + datetime.timedelta(minutes=random.randint(0, 10))
+                data_fim = data_inicio + datetime.timedelta(minutes=pontos_to_minutos(lista_nas[atividade]))
+
+                if atividade in ['7a', '7b', '8a', '8b']:  # somente o enfermeiro
+                    atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                                              enfermeiro, None)
+                else:  # enfermeiro, tecnico ou ambos
+                    aux = random.randint(0, 3)
+                    if aux == 0:  # somente o enfermeiro
+                        atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                                                  enfermeiro, None)
+                    elif aux == 1:  # somente o tecnico
+                        atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                                                  None, tecnico)
+                    else:  # enfermeiro e tecnico
+                        data_fim = data_inicio + datetime.timedelta(minutes=pontos_to_minutos(lista_nas[atividade])/2)
+                        atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                                                  enfermeiro, tecnico)
+
+
+                atendimentos.append(atendimento)
     return atendimentos
 
 
@@ -182,16 +211,6 @@ def minutos_to_pontos(minutos):
 
 if __name__ == '__main__':
 
-    #test = data_inicio_sim + datetime.timedelta(minutes=14.4)
-    #print(test)
-
-    # test2 = escolher_atividades_alto_risco()
-    # t = 0 # pontos
-    # for a in test2:
-    #     t = t+PontosNAS[a]
-    # print('tempo total horas= '+str(pontos_to_minutos(t)/60))
-    # raise SystemExit(0)
-
     variancia = 1
     sigma = math.sqrt(variancia)
 
@@ -205,5 +224,5 @@ if __name__ == '__main__':
     exportar_enfermeiros()
     atendimentos = simular_atendimentos()
     exportar_antendimentos(atendimentos)
-    # TODO: adicionar horario de inicio e de fim: verificar tempo
+    # TODO: adicionar turnos de trabalho dos enfermeiros e tecnicos
     # TODO: gerar csv com tag enfermeiro, nome e total de pontos NAS por dia
