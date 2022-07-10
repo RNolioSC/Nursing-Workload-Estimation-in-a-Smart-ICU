@@ -142,34 +142,75 @@ def simular_atendimentos():
         for dia in dias:
             atividades = escolher_atividades()
             lista_nas = simular_nas(sigma, atividades)
-            enfermeiro = random.choice(enfermeiros)
-            tecnico = random.choice(tecnicos)
 
-            data_inicio = dia + datetime.timedelta(minutes=random.randint(0, 30))
-            data_fim = data_inicio
+            enfermeiros_disponiveis = []
+            for enfermeiro_aux in enfermeiros:
+                if dia not in enfermeiro_aux.get_dias_trabalhados():
+                    enfermeiros_disponiveis.append(enfermeiro_aux)
+            if len(enfermeiros_disponiveis) == 0:
+                raise Exception('Enfermeiros insuficientes!')
+
+            tecnicos_disponiveis = []
+            for tecnico_aux in tecnicos:
+                if dia not in tecnico_aux.get_dias_trabalhados():
+                    tecnicos_disponiveis.append(tecnico_aux)
+            if len(tecnicos_disponiveis) == 0:
+                raise Exception('Tecnicos insuficientes!')
+
+            enfermeiro = random.choice(enfermeiros_disponiveis)
+            enfermeiros_disponiveis.remove(enfermeiro)
+            tecnico = random.choice(tecnicos_disponiveis)
+            tecnicos_disponiveis.remove(tecnico)
+
+            data_inicio_atividade = dia + datetime.timedelta(minutes=random.randint(0, 10))
+            data_fim_atividade = data_inicio_atividade
+            data_inicio_turno = dia
+
+            prox_almoco = data_inicio_turno + datetime.timedelta(hours=(horas_turno/2))
+            fim_turno = data_inicio_turno + datetime.timedelta(hours=horas_turno)
 
             for atividade in atividades:
 
-                # atendimento comeca depos do fim do anterior
-                data_inicio = data_fim + datetime.timedelta(minutes=random.randint(0, 10))
-                data_fim = data_inicio + datetime.timedelta(minutes=pontos_to_minutos(lista_nas[atividade]))
+                # atendimento comeca depois do fim do atendimento anterior
+                data_inicio_atividade = data_fim_atividade + datetime.timedelta(minutes=random.randint(0, 10))
+
+                if data_inicio_atividade > prox_almoco:  # pausa para o almoco
+                    data_inicio_atividade = data_inicio_atividade + datetime.timedelta(minutes=30)
+                    prox_almoco = prox_almoco + datetime.timedelta(hours=horas_turno)
+                if data_inicio_atividade > fim_turno:  # proximo turno
+
+                    enfermeiro.add_dia_trabalhado(dia, data_inicio_atividade - data_inicio_turno)
+                    tecnico.add_dia_trabalhado(dia, data_inicio_atividade - data_inicio_turno)
+
+                    # trocando de turno
+                    enfermeiro = random.choice(enfermeiros_disponiveis)
+                    enfermeiros_disponiveis.remove(enfermeiro)
+                    if len(enfermeiros_disponiveis) == 0:
+                        raise Exception('Enfermeiros insuficientes!')
+                    tecnico = random.choice(tecnicos_disponiveis)
+                    tecnicos_disponiveis.remove(tecnico)
+                    if len(tecnicos_disponiveis) == 0:
+                        raise Exception('Tecnicos insuficientes!')
+                    fim_turno = fim_turno + datetime.timedelta(hours=horas_turno)
+                    data_inicio_turno = data_inicio_atividade
+
+                data_fim_atividade = data_inicio_atividade + datetime.timedelta(minutes=pontos_to_minutos(lista_nas[atividade]))
 
                 if atividade in ['7a', '7b', '8a', '8b']:  # somente o enfermeiro
-                    atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                    atendimento = Atendimento(paciente, data_inicio_atividade, data_fim_atividade, atividade, lista_nas[atividade],
                                               enfermeiro, None)
                 else:  # enfermeiro, tecnico ou ambos
                     aux = random.randint(0, 3)
                     if aux == 0:  # somente o enfermeiro
-                        atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                        atendimento = Atendimento(paciente, data_inicio_atividade, data_fim_atividade, atividade, lista_nas[atividade],
                                                   enfermeiro, None)
                     elif aux == 1:  # somente o tecnico
-                        atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                        atendimento = Atendimento(paciente, data_inicio_atividade, data_fim_atividade, atividade, lista_nas[atividade],
                                                   None, tecnico)
                     else:  # enfermeiro e tecnico
-                        data_fim = data_inicio + datetime.timedelta(minutes=pontos_to_minutos(lista_nas[atividade])/2)
-                        atendimento = Atendimento(paciente, data_inicio, data_fim, atividade, lista_nas[atividade],
+                        data_fim_atividade = data_inicio_atividade + datetime.timedelta(minutes=pontos_to_minutos(lista_nas[atividade])/2)
+                        atendimento = Atendimento(paciente, data_inicio_atividade, data_fim_atividade, atividade, lista_nas[atividade],
                                                   enfermeiro, tecnico)
-
 
                 atendimentos.append(atendimento)
     return atendimentos
@@ -209,6 +250,29 @@ def minutos_to_pontos(minutos):
     return minutos / 14.4
 
 
+def exportar_horas_trabalhadas():
+
+    with open('horas_trabalhadas.csv', 'w', newline='') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+
+        filewriter.writerow(['Codigo', 'Tipo', 'Dia', 'Horas Trabalhadas'])
+
+        for enfermeiro in enfermeiros:
+            dias_trabalhados = enfermeiro.get_dias_horas_trabalhados()  # [dia, horas]
+            for dia_trabalhado in dias_trabalhados:
+                aux = [enfermeiro.get_codigo(), enfermeiro.get_tipo(), dia_trabalhado[0].strftime('%Y-%m-%d'),
+                       dia_trabalhado[1]]
+                filewriter.writerow(aux)
+        for tecnico in tecnicos:
+            dias_trabalhados = tecnico.get_dias_horas_trabalhados()  # [dia, horas]
+            for dia_trabalhado in dias_trabalhados:
+                aux = [tecnico.get_codigo(), tecnico.get_tipo(), dia_trabalhado[0].strftime('%Y-%m-%d'),
+                       dia_trabalhado[1]]
+                filewriter.writerow(aux)
+
+    return
+
+
 if __name__ == '__main__':
 
     variancia = 1
@@ -218,11 +282,11 @@ if __name__ == '__main__':
     data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
     total_dias = 5
 
-    enfermeiros = simular_enfermeiros(7)
-    tecnicos = simular_tecnicos(4)
+    enfermeiros = simular_enfermeiros(15)
+    tecnicos = simular_tecnicos(10)
+    horas_turno = 12
 
     exportar_enfermeiros()
     atendimentos = simular_atendimentos()
     exportar_antendimentos(atendimentos)
-    # TODO: adicionar turnos de trabalho dos enfermeiros e tecnicos
-    # TODO: gerar csv com tag enfermeiro, nome e total de pontos NAS por dia
+    exportar_horas_trabalhadas()

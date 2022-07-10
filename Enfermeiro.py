@@ -4,6 +4,7 @@ class Enfermeiro:
         self.cod_rfid = cod_rfid  # 8 digitos hexadecimais
         self.nome = nome
         self.tipo = tipo
+        self.dias_trabalhados = []  # [dia, horas]
 
     def __str__(self):
         return 'cod_rfid=' + self.cod_rfid + ', nome=' + self.nome + ', tipo = ' + self.tipo
@@ -19,3 +20,16 @@ class Enfermeiro:
 
     def get_tipo(self):
         return self.tipo
+
+    def get_dias_trabalhados(self):
+        aux = []
+        for i in self.dias_trabalhados:
+            aux.append(i[0])
+        return aux
+
+    def get_dias_horas_trabalhados(self):
+        return self.dias_trabalhados
+
+    def add_dia_trabalhado(self, dia, horas):
+        self.dias_trabalhados.append([dia, horas])
+        return
