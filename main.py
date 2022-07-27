@@ -8,15 +8,39 @@ import csv
 from Enfermeiro import Enfermeiro
 
 
-def escolher_atividades():
-    atividades = [random.choice(['1a', '1b', '1c']),
-                  '2', '3',
-                  random.choice(['4a', '4b', '4c']),
-                  '5',
-                  random.choice(['6a', '6b', '6c']),
-                  random.choice(['7a', '7b']),
-                  random.choice(['8a', '8b', '8c']),
-                  '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']
+def escolher_atividades():  # TODO: pode ser feita fora de ordem
+
+    atividades = random.choices(['1a', '1b', '1c'], weights=(80, 10, 10))
+    atividades.extend(['2', '3'])
+    atividades.extend(random.choices(['4a', '4b', '4c'], weights=(80, 10, 10)))
+    if 0.3 >= random.random():
+        atividades.append('5')
+    atividades.extend(random.choices(['6a', '6b', '6c'], weights=(10, 80, 10)))
+    atividades.extend(random.choices(['7a', '7b'], weights=(85, 15)))
+    atividades.extend(random.choices(['8a', '8b', '8c'], weights=(80, 10, 10)))
+    atividades.extend(['9', '10', '11'])
+    if 0.3 >= random.random():
+        atividades.append('12')
+    if 0.3 >= random.random():
+        atividades.append('13')
+    if 0.3 >= random.random():
+        atividades.append('14')
+    if 0.3 >= random.random():
+        atividades.append('15')
+    if 0.3 >= random.random():
+        atividades.append('16')
+    atividades.append('17')
+    if 0.3 >= random.random():
+        atividades.append('18')
+    if 0.3 >= random.random():
+        atividades.append('19')
+    if 0.3 >= random.random():
+        atividades.append('20')
+    atividades.append('21')
+    if 0.3 >= random.random():
+        atividades.append('22')
+    if 0.3 >= random.random():
+        atividades.append('23')
 
     return atividades
 
@@ -132,6 +156,9 @@ def simular_tecnicos(quantidade):
 
 
 def simular_atendimentos():
+    variancia = 1
+    sigma = math.sqrt(variancia)
+
     dias = []
     for i in range(0, total_dias):
         dias.append(data_inicio_sim + datetime.timedelta(i))
@@ -275,9 +302,6 @@ def exportar_horas_trabalhadas():
 
 if __name__ == '__main__':
 
-    variancia = 1
-    sigma = math.sqrt(variancia)
-
     pacientes = simular_pacientes(3)
     data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
     total_dias = 5
@@ -285,8 +309,8 @@ if __name__ == '__main__':
     enfermeiros = simular_enfermeiros(15)
     tecnicos = simular_tecnicos(10)
     horas_turno = 12
-
     exportar_enfermeiros()
+
     atendimentos = simular_atendimentos()
     exportar_antendimentos(atendimentos)
     exportar_horas_trabalhadas()
