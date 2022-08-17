@@ -20,7 +20,7 @@ class Atendimento:
                ', enfermeiro=' + str(self.enfermeiro) + ', tecnico=' + str(self.tecnico)
 
     def get_paciente_str(self):
-        return str(self.paciente)
+        return str(self.paciente.get_nome())
 
     def get_dia_inicio_str(self):
         return self.data_inicio.strftime('%Y-%m-%d')

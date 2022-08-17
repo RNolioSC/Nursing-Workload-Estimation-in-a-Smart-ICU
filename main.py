@@ -1,4 +1,5 @@
 from pontosNAS import PontosNAS
+from ProbabsNas import ProbabsNAS
 import math
 import scipy.stats as stats
 import random
@@ -6,41 +7,35 @@ import datetime
 from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
+from Paciente import Paciente
 
 
 def escolher_atividades():  # TODO: pode ser feita fora de ordem
 
-    atividades = random.choices(['1a', '1b', '1c'], weights=(80, 10, 10))
-    atividades.extend(['2', '3'])
-    atividades.extend(random.choices(['4a', '4b', '4c'], weights=(80, 10, 10)))
-    if 0.3 >= random.random():
-        atividades.append('5')
-    atividades.extend(random.choices(['6a', '6b', '6c'], weights=(10, 80, 10)))
-    atividades.extend(random.choices(['7a', '7b'], weights=(85, 15)))
-    atividades.extend(random.choices(['8a', '8b', '8c'], weights=(80, 10, 10)))
-    atividades.extend(['9', '10', '11'])
-    if 0.3 >= random.random():
-        atividades.append('12')
-    if 0.3 >= random.random():
-        atividades.append('13')
-    if 0.3 >= random.random():
-        atividades.append('14')
-    if 0.3 >= random.random():
-        atividades.append('15')
-    if 0.3 >= random.random():
-        atividades.append('16')
-    atividades.append('17')
-    if 0.3 >= random.random():
-        atividades.append('18')
-    if 0.3 >= random.random():
-        atividades.append('19')
-    if 0.3 >= random.random():
-        atividades.append('20')
-    atividades.append('21')
-    if 0.3 >= random.random():
-        atividades.append('22')
-    if 0.3 >= random.random():
-        atividades.append('23')
+    atividades = random.choices(['1a', '1b', '1c'],
+                                weights=(ProbabsNAS['1a'], ProbabsNAS['1b'], ProbabsNAS['1c']))
+
+    for i in ['2', '3']:
+        if ProbabsNAS[i] >= random.random():
+            atividades.append(i)
+
+    atividades.extend(random.choices(['4a', '4b', '4c'],
+                                     weights=(ProbabsNAS['4a'], ProbabsNAS['4b'], ProbabsNAS['4c'])))
+
+    for i in ['5']:
+        if ProbabsNAS[i] >= random.random():
+            atividades.append(i)
+
+    atividades.extend(random.choices(['6a', '6b', '6c'],
+                                     weights=(ProbabsNAS['6a'], ProbabsNAS['6b'], ProbabsNAS['6c'])))
+    atividades.extend(random.choices(['7a', '7b'],
+                                     weights=(ProbabsNAS['7a'], ProbabsNAS['7b'])))
+    atividades.extend(random.choices(['8a', '8b', '8c'],
+                                     weights=(ProbabsNAS['8a'], ProbabsNAS['8b'], ProbabsNAS['8c'])))
+
+    for i in ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']:
+        if ProbabsNAS[i] >= random.random():
+            atividades.append(i)
 
     return atividades
 
@@ -264,7 +259,8 @@ def simular_pacientes(quantidade):
     pacientes = []
     for j in range(quantidade):
         nome = 'paciente' + str(j + 1)
-        pacientes.append(nome)
+        paciente = Paciente(j+1, nome)
+        pacientes.append(paciente)
 
     return pacientes
 
