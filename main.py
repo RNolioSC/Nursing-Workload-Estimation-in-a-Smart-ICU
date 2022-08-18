@@ -1,3 +1,4 @@
+import Diagnosticos
 from pontosNAS import PontosNAS
 from ProbabsNas import ProbabsNAS
 import math
@@ -8,33 +9,44 @@ from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
+from Diagnosticos import *
 
 
-def escolher_atividades():  # TODO: pode ser feita fora de ordem
+def escolher_atividades(diagnostico):
+    # ajustar probabilidade de cada atividade ocorrer de acordo com o diagnostico
+    probNasDiag = Diagnosticos.Index[diagnostico][0]
+    probsNASajustados = {}
+
+    for k in ProbabsNAS:
+        try:
+            probsNASajustados[k] = probNasDiag[k]
+        except KeyError:
+            # nada a ajustar
+            probsNASajustados[k] = ProbabsNAS[k]
 
     atividades = random.choices(['1a', '1b', '1c'],
-                                weights=(ProbabsNAS['1a'], ProbabsNAS['1b'], ProbabsNAS['1c']))
+                                weights=(probsNASajustados['1a'], probsNASajustados['1b'], probsNASajustados['1c']))
 
     for i in ['2', '3']:
-        if ProbabsNAS[i] >= random.random():
+        if probsNASajustados[i] >= random.random():
             atividades.append(i)
 
     atividades.extend(random.choices(['4a', '4b', '4c'],
-                                     weights=(ProbabsNAS['4a'], ProbabsNAS['4b'], ProbabsNAS['4c'])))
+                                     weights=(probsNASajustados['4a'], probsNASajustados['4b'], probsNASajustados['4c'])))
 
     for i in ['5']:
-        if ProbabsNAS[i] >= random.random():
+        if probsNASajustados[i] >= random.random():
             atividades.append(i)
 
     atividades.extend(random.choices(['6a', '6b', '6c'],
-                                     weights=(ProbabsNAS['6a'], ProbabsNAS['6b'], ProbabsNAS['6c'])))
+                                     weights=(probsNASajustados['6a'], probsNASajustados['6b'], probsNASajustados['6c'])))
     atividades.extend(random.choices(['7a', '7b'],
-                                     weights=(ProbabsNAS['7a'], ProbabsNAS['7b'])))
+                                     weights=(probsNASajustados['7a'], probsNASajustados['7b'])))
     atividades.extend(random.choices(['8a', '8b', '8c'],
-                                     weights=(ProbabsNAS['8a'], ProbabsNAS['8b'], ProbabsNAS['8c'])))
+                                     weights=(probsNASajustados['8a'], probsNASajustados['8b'], probsNASajustados['8c'])))
 
     for i in ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']:
-        if ProbabsNAS[i] >= random.random():
+        if probsNASajustados[i] >= random.random():
             atividades.append(i)
 
     return atividades
@@ -61,10 +73,22 @@ def escolher_atividades_alto_risco():
     return atividades
 
 
-def simular_nas(sigma, atividades):
+def simular_nas(diagnostico, sigma, atividades):
+
     resultados = {}
+    # ajustar pontos NAS esperados de acordo com o diagnostico
+    pontosNASdiag = Diagnosticos.Index[diagnostico][1]
+    pontosNASajustados = {}
+
+    for k in atividades:
+        try:
+            pontosNASajustados[k] = pontosNASdiag[k]
+        except KeyError:
+            # nada a ajustar
+            pontosNASajustados[k] = PontosNAS[k]
+
     for j in atividades:
-        aux = abs(stats.norm.rvs(PontosNAS[j], sigma))
+        aux = abs(stats.norm.rvs(pontosNASajustados[j], sigma))
         resultados[j] = aux
     return resultados
 
@@ -150,7 +174,7 @@ def simular_tecnicos(quantidade):
     return tecnicos
 
 
-def simular_atendimentos():
+def simular_atendimentos(): # TODO: adicionar dias de folga
     variancia = 1
     sigma = math.sqrt(variancia)
 
@@ -162,8 +186,8 @@ def simular_atendimentos():
     for paciente in pacientes:
 
         for dia in dias:
-            atividades = escolher_atividades()
-            lista_nas = simular_nas(sigma, atividades)
+            atividades = escolher_atividades(paciente.get_diagnostico())
+            lista_nas = simular_nas(paciente.get_diagnostico(), sigma, atividades)
 
             enfermeiros_disponiveis = []
             for enfermeiro_aux in enfermeiros:
@@ -259,7 +283,8 @@ def simular_pacientes(quantidade):
     pacientes = []
     for j in range(quantidade):
         nome = 'paciente' + str(j + 1)
-        paciente = Paciente(j+1, nome)
+        diagnostico = random.choice(list(Diagnosticos.Index.keys()))
+        paciente = Paciente(j+1, nome, diagnostico)
         pacientes.append(paciente)
 
     return pacientes
@@ -292,21 +317,35 @@ def exportar_horas_trabalhadas():
                 aux = [tecnico.get_codigo(), tecnico.get_tipo(), dia_trabalhado[0].strftime('%Y-%m-%d'),
                        dia_trabalhado[1]]
                 filewriter.writerow(aux)
-
+    # TODO: ajustar para quando a qdade de horas trabalhadas por dia for maior q 24h
     return
+
+
+def exportar_pacientes():
+    with open('pacientes.csv', 'w', newline='') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+
+        filewriter.writerow(['Codigo', 'Nome', 'Diagnostico'])
+
+        for paciente in pacientes:
+            aux = [paciente.get_codigo(), paciente.get_nome(), paciente.get_diagnostico()]
+            filewriter.writerow(aux)
 
 
 if __name__ == '__main__':
 
+    #print(ProbabsNAS)
     pacientes = simular_pacientes(3)
+    exportar_pacientes()
     data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
     total_dias = 5
 
-    enfermeiros = simular_enfermeiros(15)
-    tecnicos = simular_tecnicos(10)
+    enfermeiros = simular_enfermeiros(20)
+    tecnicos = simular_tecnicos(15)
     horas_turno = 12
     exportar_enfermeiros()
 
     atendimentos = simular_atendimentos()
     exportar_antendimentos(atendimentos)
     exportar_horas_trabalhadas()
+    # TODO: exportar relatorio de tempo por atividade por diagnositico & adicionar mais diagnosticos
