@@ -19,6 +19,9 @@ class Atendimento:
                str(self.data_fim) + ', atividade=' + str(self.atividade) + ', pontuacao=' + str(self.pontuacao) + \
                ', enfermeiro=' + str(self.enfermeiro) + ', tecnico=' + str(self.tecnico)
 
+    def get_paciente(self):
+        return self.paciente
+
     def get_paciente_str(self):
         return str(self.paciente.get_nome())
 
@@ -28,11 +31,17 @@ class Atendimento:
     def get_horario_inicio_str(self):
         return self.data_inicio.strftime('%H:%M:%S')
 
+    def get_diaHoraInicio(self):
+        return self.data_inicio
+
     def get_dia_fim_str(self):
         return self.data_fim.strftime('%Y-%m-%d')
 
     def get_horario_fim_str(self):
         return self.data_fim.strftime('%H:%M:%S')
+
+    def get_diaHoraFim(self):
+        return self.data_fim
 
     def get_atividade_str(self):
         return str(self.atividade)

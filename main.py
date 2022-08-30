@@ -9,12 +9,11 @@ from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
-from Diagnosticos import *
 
 
 def escolher_atividades(diagnostico):
     # ajustar probabilidade de cada atividade ocorrer de acordo com o diagnostico
-    probNasDiag = Diagnosticos.Index[diagnostico][0]
+    probNasDiag = Diagnosticos.Index[diagnostico]
     probsNASajustados = {}
 
     for k in ProbabsNAS:
@@ -73,22 +72,11 @@ def escolher_atividades_alto_risco():
     return atividades
 
 
-def simular_nas(diagnostico, sigma, atividades):
+def simular_nas(sigma, atividades):
 
     resultados = {}
-    # ajustar pontos NAS esperados de acordo com o diagnostico
-    pontosNASdiag = Diagnosticos.Index[diagnostico][1]
-    pontosNASajustados = {}
-
-    for k in atividades:
-        try:
-            pontosNASajustados[k] = pontosNASdiag[k]
-        except KeyError:
-            # nada a ajustar
-            pontosNASajustados[k] = PontosNAS[k]
-
     for j in atividades:
-        aux = abs(stats.norm.rvs(pontosNASajustados[j], sigma))
+        aux = abs(stats.norm.rvs(PontosNAS[j], sigma))
         resultados[j] = aux
     return resultados
 
@@ -97,13 +85,43 @@ def exportar_antendimentos(atendimentos):
     with open('atendimentos.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
-        filewriter.writerow(['Paciente', 'Dia Inicio', 'Horario Inicio', 'Dia Fim', 'Horario Fim',
+        filewriter.writerow(['Paciente', 'Diagnostico', 'Dia Inicio', 'Horario Inicio', 'Dia Fim', 'Horario Fim',
                              'Atividade', 'Pontuacao', 'Enfermeiro', 'Tecnico'])
 
         for atendimento in atendimentos:
-            aux = [atendimento.get_paciente_str(), atendimento.get_dia_inicio_str(),
-                   atendimento.get_horario_inicio_str(),
+            aux = [atendimento.get_paciente_str(), atendimento.get_paciente().get_diagnostico(),
+                   atendimento.get_dia_inicio_str(), atendimento.get_horario_inicio_str(),
                    atendimento.get_dia_fim_str(), atendimento.get_horario_fim_str(),
+                   atendimento.get_atividade_str(),
+                   atendimento.get_pontuacao_str()]
+
+            if atendimento.get_enfermeiro() is None:
+                aux.append('')
+            else:
+                aux.append(atendimento.get_enfermeiro().get_codigo())
+
+            if atendimento.get_tecnico() is None:
+                aux.append('')
+            else:
+                aux.append(atendimento.get_tecnico().get_codigo())
+
+            filewriter.writerow(aux)
+
+    return
+
+
+def exportar_antendimentos_nn(atendimentos):
+    with open('atendimentos_nn.csv', 'w', newline='') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+
+        filewriter.writerow(['Diagnostico', 'codPaciente', 'Duracao',  #'DiaHoraInicio', 'DiaHoraFim',
+                             'Atividade', 'Pontuacao', 'Enfermeiro', 'Tecnico'])
+
+        for atendimento in atendimentos:
+            duracao = atendimento.get_diaHoraFim() - atendimento.get_diaHoraInicio()
+
+            aux = [atendimento.get_paciente().get_diagnostico(), atendimento.get_paciente().get_codigo(),
+                   duracao.total_seconds(),
                    atendimento.get_atividade_str(),
                    atendimento.get_pontuacao_str()]
 
@@ -174,7 +192,7 @@ def simular_tecnicos(quantidade):
     return tecnicos
 
 
-def simular_atendimentos(): # TODO: adicionar dias de folga
+def simular_atendimentos():  # TODO: adicionar dias de folga
     variancia = 1
     sigma = math.sqrt(variancia)
 
@@ -184,10 +202,11 @@ def simular_atendimentos(): # TODO: adicionar dias de folga
 
     atendimentos = []
     for paciente in pacientes:
+        print('Paciente: ' + str(paciente))
 
         for dia in dias:
             atividades = escolher_atividades(paciente.get_diagnostico())
-            lista_nas = simular_nas(paciente.get_diagnostico(), sigma, atividades)
+            lista_nas = simular_nas(sigma, atividades)
 
             enfermeiros_disponiveis = []
             for enfermeiro_aux in enfermeiros:
@@ -335,17 +354,18 @@ def exportar_pacientes():
 if __name__ == '__main__':
 
     #print(ProbabsNAS)
-    pacientes = simular_pacientes(3)
+    pacientes = simular_pacientes(10)
     exportar_pacientes()
     data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
     total_dias = 5
 
-    enfermeiros = simular_enfermeiros(20)
-    tecnicos = simular_tecnicos(15)
+    enfermeiros = simular_enfermeiros(7*10)
+    tecnicos = simular_tecnicos(10*10)
     horas_turno = 12
     exportar_enfermeiros()
 
     atendimentos = simular_atendimentos()
     exportar_antendimentos(atendimentos)
+    exportar_antendimentos_nn(atendimentos)
     exportar_horas_trabalhadas()
     # TODO: exportar relatorio de tempo por atividade por diagnositico & adicionar mais diagnosticos

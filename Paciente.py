@@ -15,7 +15,7 @@ class Paciente:
         return self.diagnostico
 
     def __str__(self):
-        return 'codigo=' + self.codigo + ' nome=' + self.nome + ', diagnostico=' + self.diagnostico
+        return 'codigo=' + str(self.codigo) + ' nome=' + self.nome + ', diagnostico=' + self.diagnostico
 
     def __repr__(self):
-        return 'codigo=' + self.codigo + ' nome=' + self.nome + ', diagnostico=' + self.diagnostico
+        return 'codigo=' + str(self.codigo) + ' nome=' + self.nome + ', diagnostico=' + self.diagnostico

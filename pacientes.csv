@@ -1,4 +1,11 @@
 Codigo,Nome,Diagnostico
-1,paciente1,desconhecido
+1,paciente1,covid-19
 2,paciente2,covid-19
 3,paciente3,covid-19
+4,paciente4,desconhecido
+5,paciente5,desconhecido
+6,paciente6,desconhecido
+7,paciente7,queimado
+8,paciente8,queimado
+9,paciente9,queimado
+10,paciente10,queimado
