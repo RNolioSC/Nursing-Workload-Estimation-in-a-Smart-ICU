@@ -114,8 +114,8 @@ def exportar_antendimentos_nn(atendimentos):
     with open('atendimentos_nn.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
-        filewriter.writerow(['Diagnostico', 'codPaciente', 'Duracao',  #'DiaHoraInicio', 'DiaHoraFim',
-                             'Atividade', 'Pontuacao', 'Enfermeiro', 'Tecnico'])
+        filewriter.writerow(['Diagnostico', 'codPaciente', 'Duracao', 'Atividade', 'Pontuacao',
+                             'Enfermeiro', 'Tecnico'])
 
         for atendimento in atendimentos:
             duracao = atendimento.get_diaHoraFim() - atendimento.get_diaHoraInicio()

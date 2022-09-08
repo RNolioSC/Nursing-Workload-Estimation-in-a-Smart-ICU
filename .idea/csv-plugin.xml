@@ -17,6 +17,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\atendimentos_nn_prepr.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\enfermeiros.csv">
           <value>
             <Attribute>

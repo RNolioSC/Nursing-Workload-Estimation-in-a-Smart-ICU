@@ -8,25 +8,24 @@ from keras.preprocessing.text import one_hot
 import time
 import keras
 from sklearn.metrics import confusion_matrix
+import keras.metrics
 
 if __name__ == '__main__':
     
     tempoi = time.time()
 
-    #### TODO: data preprocessing
-
-    dataset = genfromtxt(r'atendimentos_nn.csv', encoding='latin-1', delimiter=',', skip_header=1)
+    dataset = genfromtxt(r'atendimentos_nn_prepr.csv', encoding='latin-1', delimiter=',', skip_header=1)
     X = dataset[:, 1:]
     Y = dataset[:, 0]
     for i in range(0, len(X)):
         for j in range(0, len(X[0])):
             if numpy.isnan(X[i][j]):
-                print(i, j, "cenario 1-1")
+                print("NaN: ", i, j)
 
     #####
 
     model = Sequential()
-    model.add(Dense(25, input_dim=3, activation='softsign'))
+    model.add(Dense(25, input_dim=6, activation='softsign'))
     model.add(Dense(25, activation='softsign'))
     model.add(Dense(1, activation='sigmoid'))
 
@@ -37,8 +36,11 @@ if __name__ == '__main__':
     _, accuracy = model.evaluate(X, Y)
     print('Accuracy: %.2f' % (accuracy * 100))
 
-    predictions = model.predict_classes(X)
-    
+    # predictions = model.predict_classes(X)  # TODO: deprecated
+    #predict_x = model.predict(X)
+    #classes_x = numpy.argmax(predict_x, axis=1)
+    #predictions = (model.predict(X) > 0.5).astype("int32")
+
     tempof = time.time()
     print("tempo de execucao (s):", tempof-tempoi)
    
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     plt.show()
     
     print("False positives: ", keras.metrics.FalsePositives(thresholds=None, name=None, dtype=None).result().numpy())
-    matrix = confusion_matrix(Y, predictions)
+    matrix = confusion_matrix(Y, [int(item[0]) for item in predictions])  # flattened predictions list
     print(matrix)
     fp = matrix[1, 0]
     
