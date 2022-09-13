@@ -351,16 +351,58 @@ def exportar_pacientes():
             filewriter.writerow(aux)
 
 
+def exportar_ativs_por_diag():
+    dias = []
+    for i in range(0, total_dias):
+        dias.append(data_inicio_sim + datetime.timedelta(i))
+
+    tabela = []
+    # ['codPaciente', 'Dia', 'Diagnostico', 'Atividades'])
+    # ['', '', '', '1', '2', '3', ...]
+    for paciente in pacientes:
+        for dia in dias:
+            aux = [paciente.get_codigo(), dia.strftime('%Y-%m-%d'), paciente.get_diagnostico()]
+            aux.extend([0] * 23)
+            tabela.append(aux)
+
+    posCodPac = 0
+    posDia = 1
+    posAtiv = 2
+    for atendimento in atendimentos:
+        for linha in tabela:
+            if linha[posCodPac] == atendimento.get_paciente().get_codigo() and \
+                    linha[posDia] == atendimento.get_dia_inicio_str():
+                if len(atendimento.get_atividade_str()) == 1:
+                    linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 1
+                else:
+                    if atendimento.get_atividade_str()[1] == 'a':
+                        linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 1
+                    elif atendimento.get_atividade_str()[1] == 'b':
+                        linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 2
+                    elif atendimento.get_atividade_str()[1] == 'c':
+                        linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 3
+
+    with open('ativs_diag.csv', 'w', newline='') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        filewriter.writerow(['codPaciente', 'Dia', 'Diagnostico', 'Atividades'])
+        aux = ['', '', '']
+        for i in range(1, 24):
+            aux.append(str(i))
+        filewriter.writerow(aux)
+        for linha in tabela:
+            filewriter.writerow(linha)
+
+
 if __name__ == '__main__':
 
     #print(ProbabsNAS)
-    pacientes = simular_pacientes(10)
+    pacientes = simular_pacientes(50)
     exportar_pacientes()
     data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
-    total_dias = 5
+    total_dias = 20
 
-    enfermeiros = simular_enfermeiros(7*10)
-    tecnicos = simular_tecnicos(10*10)
+    enfermeiros = simular_enfermeiros(7*50)
+    tecnicos = simular_tecnicos(10*50)
     horas_turno = 12
     exportar_enfermeiros()
 
@@ -368,4 +410,5 @@ if __name__ == '__main__':
     exportar_antendimentos(atendimentos)
     exportar_antendimentos_nn(atendimentos)
     exportar_horas_trabalhadas()
-    # TODO: exportar relatorio de tempo por atividade por diagnositico & adicionar mais diagnosticos
+
+    exportar_ativs_por_diag()

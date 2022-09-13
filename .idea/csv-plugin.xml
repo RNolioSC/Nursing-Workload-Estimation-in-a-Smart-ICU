@@ -24,6 +24,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\ativs_diag.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\ativs_diag_prepr.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\enfermeiros.csv">
           <value>
             <Attribute>
