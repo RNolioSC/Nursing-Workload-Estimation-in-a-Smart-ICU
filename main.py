@@ -1,6 +1,7 @@
+from matplotlib import pyplot as plt
+
 import Diagnosticos
 from pontosNAS import PontosNAS
-from ProbabsNas import ProbabsNAS
 import math
 import scipy.stats as stats
 import random
@@ -9,43 +10,36 @@ from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
+from nn_ativs_por_pac import evaluate as nn_evaluate
 
 
 def escolher_atividades(diagnostico):
-    # ajustar probabilidade de cada atividade ocorrer de acordo com o diagnostico
     probNasDiag = Diagnosticos.Index[diagnostico]
-    probsNASajustados = {}
-
-    for k in ProbabsNAS:
-        try:
-            probsNASajustados[k] = probNasDiag[k]
-        except KeyError:
-            # nada a ajustar
-            probsNASajustados[k] = ProbabsNAS[k]
+    Diagnosticos.add_atividades_faltantes()
 
     atividades = random.choices(['1a', '1b', '1c'],
-                                weights=(probsNASajustados['1a'], probsNASajustados['1b'], probsNASajustados['1c']))
+                                weights=(probNasDiag['1a'], probNasDiag['1b'], probNasDiag['1c']))
 
     for i in ['2', '3']:
-        if probsNASajustados[i] >= random.random():
+        if probNasDiag[i] >= random.random():
             atividades.append(i)
 
     atividades.extend(random.choices(['4a', '4b', '4c'],
-                                     weights=(probsNASajustados['4a'], probsNASajustados['4b'], probsNASajustados['4c'])))
+                                     weights=(probNasDiag['4a'], probNasDiag['4b'], probNasDiag['4c'])))
 
     for i in ['5']:
-        if probsNASajustados[i] >= random.random():
+        if probNasDiag[i] >= random.random():
             atividades.append(i)
 
     atividades.extend(random.choices(['6a', '6b', '6c'],
-                                     weights=(probsNASajustados['6a'], probsNASajustados['6b'], probsNASajustados['6c'])))
+                                     weights=(probNasDiag['6a'], probNasDiag['6b'], probNasDiag['6c'])))
     atividades.extend(random.choices(['7a', '7b'],
-                                     weights=(probsNASajustados['7a'], probsNASajustados['7b'])))
+                                     weights=(probNasDiag['7a'], probNasDiag['7b'])))
     atividades.extend(random.choices(['8a', '8b', '8c'],
-                                     weights=(probsNASajustados['8a'], probsNASajustados['8b'], probsNASajustados['8c'])))
+                                     weights=(probNasDiag['8a'], probNasDiag['8b'], probNasDiag['8c'])))
 
     for i in ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']:
-        if probsNASajustados[i] >= random.random():
+        if probNasDiag[i] >= random.random():
             atividades.append(i)
 
     return atividades
@@ -82,7 +76,7 @@ def simular_nas(sigma, atividades):
 
 
 def exportar_antendimentos(atendimentos):
-    with open('atendimentos.csv', 'w', newline='') as csvfile:
+    with open('CSV/atendimentos.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Paciente', 'Diagnostico', 'Dia Inicio', 'Horario Inicio', 'Dia Fim', 'Horario Fim',
@@ -111,7 +105,7 @@ def exportar_antendimentos(atendimentos):
 
 
 def exportar_antendimentos_nn(atendimentos):
-    with open('atendimentos_nn.csv', 'w', newline='') as csvfile:
+    with open('CSV/atendimentos_nn.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Diagnostico', 'codPaciente', 'Duracao', 'Atividade', 'Pontuacao',
@@ -282,7 +276,7 @@ def simular_atendimentos():  # TODO: adicionar dias de folga
 
 
 def exportar_enfermeiros():
-    with open('enfermeiros.csv', 'w', newline='') as csvfile:
+    with open('CSV/enfermeiros.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Codigo RFID', 'Nome', 'Tipo'])
@@ -319,7 +313,7 @@ def minutos_to_pontos(minutos):
 
 def exportar_horas_trabalhadas():
 
-    with open('horas_trabalhadas.csv', 'w', newline='') as csvfile:
+    with open('CSV/horas_trabalhadas.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Codigo', 'Tipo', 'Dia', 'Horas Trabalhadas'])
@@ -341,7 +335,7 @@ def exportar_horas_trabalhadas():
 
 
 def exportar_pacientes():
-    with open('pacientes.csv', 'w', newline='') as csvfile:
+    with open('CSV/pacientes.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Codigo', 'Nome', 'Diagnostico'])
@@ -382,7 +376,7 @@ def exportar_ativs_por_diag():
                     elif atendimento.get_atividade_str()[1] == 'c':
                         linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 3
 
-    with open('ativs_diag.csv', 'w', newline='') as csvfile:
+    with open('CSV/ativs_diag.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         filewriter.writerow(['codPaciente', 'Dia', 'Diagnostico', 'Atividades'])
         aux = ['', '', '']
@@ -393,22 +387,95 @@ def exportar_ativs_por_diag():
             filewriter.writerow(linha)
 
 
+def calcular_resultados():
+    dias = []
+    for i in range(0, total_dias):
+        dias.append(data_inicio_sim + datetime.timedelta(i))
+
+    # resultados teoricos:
+    resultado_teorico = []
+    for dia in dias:
+        t_parcial = 0.0
+        for paciente in pacientes:
+            probabs = Diagnosticos.Index[paciente.get_diagnostico()]
+            for atividade in probabs:
+                t_parcial += probabs[atividade] * PontosNAS[atividade]
+        resultado_teorico.append(t_parcial)
+
+    # resultados praticos:
+    resultado_pratico = []
+    for dia in dias:
+        t_parcial = 0.0
+        for atendimento in atendimentos:
+            if atendimento.get_diaHoraInicio().date() == dia.date():
+                t_parcial += float(atendimento.get_pontuacao_str())
+        resultado_pratico.append(t_parcial)
+
+    # resultados da rede neural
+    resultado_nn = []
+    for dia in dias:
+        t_parcial = 0.0
+        for paciente in pacientes:
+            # TODO: mudar para evaluar por batch
+            atividades = nn_evaluate(paciente.get_diagnostico())
+            print('evaluate paciente='+str(paciente.get_codigo()) + ', dia='+str(dia.date()))
+            for atividade in atividades:
+                t_parcial += PontosNAS[atividade]
+        resultado_nn.append(t_parcial)
+
+    plt.plot(resultado_teorico)
+    plt.plot(resultado_pratico)
+    plt.plot(resultado_nn)
+    plt.ylabel('Pontos NAS')
+    plt.xlabel('Dia')
+    plt.legend(['Resultado Teorico', 'Resultado Prático', 'Resultado Rede Neural'])
+    plt.show()
+
+    teo_vs_pr = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_pratico)]
+    teo_vs_teo = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_teorico)]
+    plt.plot(teo_vs_teo)
+    plt.plot(teo_vs_pr)
+    plt.ylabel('Porcentagem')
+    plt.xlabel('Dia')
+    plt.legend(['Resultado Teorico', 'Resultado Prático'])
+    plt.show()
+
+    # plt.plot(debug_teo[0:100])
+    # plt.plot(debug_pr[0:100])
+    # plt.ylabel('Pontos NAS')
+    # plt.xlabel('Dia')
+    # plt.legend(['Resultado Teorico', 'Resultado Prático'])
+    # plt.show()
+
+    # aten_teo = []
+    # aten_pra = []
+    # for atendimento in atendimentos:
+    #     aten_pra.append(float(atendimento.get_pontuacao_str()))
+    #     aten_teo.append(PontosNAS[atendimento.get_atividade_str()])
+    # plt.plot(aten_teo[0:100])
+    # plt.plot(aten_pra[0:100])
+    # plt.ylabel('Pontos NAS')
+    # plt.xlabel('Atendimento')
+    # plt.legend(['Resultado Teorico', 'Resultado Prático'])
+    # plt.show()
+
+
 if __name__ == '__main__':
 
-    #print(ProbabsNAS)
     pacientes = simular_pacientes(50)
-    exportar_pacientes()
+    # exportar_pacientes()
     data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
     total_dias = 20
 
     enfermeiros = simular_enfermeiros(7*50)
     tecnicos = simular_tecnicos(10*50)
     horas_turno = 12
-    exportar_enfermeiros()
+    # exportar_enfermeiros()
 
     atendimentos = simular_atendimentos()
-    exportar_antendimentos(atendimentos)
-    exportar_antendimentos_nn(atendimentos)
-    exportar_horas_trabalhadas()
-
+    # exportar_antendimentos(atendimentos)
+    # exportar_antendimentos_nn(atendimentos)
+    # exportar_horas_trabalhadas()
     exportar_ativs_por_diag()
+    calcular_resultados()
+    # TODO: adicionar save and load de simulacao.

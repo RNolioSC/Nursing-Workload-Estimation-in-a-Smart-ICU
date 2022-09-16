@@ -6,8 +6,16 @@ def prob_rel(atividade, valor):
     return valor*ProbabsNAS[atividade]
 
 
+def add_atividades_faltantes():
+    for i in Index:
+        diagnostico = Index[i]
+        for atividade in ProbabsNAS:
+            if atividade not in diagnostico:
+                diagnostico[atividade] = ProbabsNAS[atividade]
+
+
 # caso o diagnostico nao seja conhecido, usar valores padrao
-Desconhecido = {}
+Desconhecido = ProbabsNAS
 
 Covid = {  # (BRUYNEEL et al., 2021)
 

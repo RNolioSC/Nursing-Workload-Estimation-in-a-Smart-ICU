@@ -3,7 +3,7 @@ from sklearn.preprocessing import normalize
 
 
 def exportar_dados():
-    with open('atendimentos_nn_prepr.csv', 'w', newline='') as csvfile:
+    with open('CSV/atendimentos_nn_prepr.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Diagnostico', 'codPaciente', 'Duracao', 'Atividade', 'Pontuacao',
@@ -14,7 +14,7 @@ def exportar_dados():
 
 
 if __name__ == '__main__':
-    with open("atendimentos_nn.csv") as csvfile:
+    with open("CSV/atendimentos_nn.csv") as csvfile:
         reader = csv.reader(csvfile, delimiter=",", quotechar='|')
         next(reader, None)  # skip the headers
         tabela = [row for row in reader]
