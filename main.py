@@ -480,7 +480,7 @@ def salvar_simulacao():
     with open('bin/atendimentos.bin', 'wb') as f:
         pickle.dump(atendimentos, f)
     with open('bin/diagnosticos_list.bin', 'wb') as f:
-        pickle.dump(Diagnosticos.Index.keys(), f)
+        pickle.dump(list(Diagnosticos.Index.keys()), f)
 
 
 def load_pacientes():
@@ -518,16 +518,10 @@ def load_atendimentos():
         return pickle.load(f)
 
 
-def delete_old_files():
-    for f in os.listdir('/bin/'):
-        os.remove(os.path.join('/bin/', f))
-
-
 if __name__ == '__main__':
 
-    nova_simulacao = True
+    nova_simulacao = False
     if nova_simulacao:
-        delete_old_files()
         pacientes = simular_pacientes(50)
         data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
         total_dias = 20
@@ -536,7 +530,6 @@ if __name__ == '__main__':
         horas_turno = 12
         atendimentos = simular_atendimentos()
         salvar_simulacao()
-        # TODO: delete old csv and bin
 
     else:
         pacientes = load_pacientes()

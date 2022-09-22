@@ -16,14 +16,14 @@ import pickle
 
 
 def data_preprocessing():
+    with open('bin/diagnosticos_list.bin', 'rb') as f:
+        diagnosticos = pickle.load(f)
     with open("CSV/ativs_diag.csv") as csvfile:
         reader = csv.reader(csvfile, delimiter=",", quotechar='|')
         next(reader, None)  # skip the headers
         next(reader, None)  # skip the headers
-    with open('bin/diagnosticos_list.bin', 'rb') as f:
-        diagnosticos = pickle.load(f)
+        tabela = [row for row in reader]
 
-    tabela = [row for row in reader]
     nova_tabela = []
     for linha in tabela:
         nova_linha = linha
