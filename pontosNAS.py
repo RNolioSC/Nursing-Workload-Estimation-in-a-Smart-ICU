@@ -32,4 +32,4 @@ PontosNAS = {
         '22': 2.8,
         '23': 1.9,
 
-    }
+    }  # TODO: verificar se a normal eh a que melhor modela a duracao

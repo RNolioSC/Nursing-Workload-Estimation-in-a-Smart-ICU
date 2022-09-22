@@ -14,35 +14,30 @@ import csv
 import tensorflow as tf
 import pickle
 
+
 def data_preprocessing():
     with open("CSV/ativs_diag.csv") as csvfile:
         reader = csv.reader(csvfile, delimiter=",", quotechar='|')
         next(reader, None)  # skip the headers
         next(reader, None)  # skip the headers
+    with open('bin/diagnosticos_list.bin', 'rb') as f:
+        diagnosticos = pickle.load(f)
 
-        tabela = [row for row in reader]
-
-    diagnosticos = []
+    tabela = [row for row in reader]
     nova_tabela = []
     for linha in tabela:
         nova_linha = linha
-        if linha[2] not in diagnosticos:
-            diagnosticos.append(linha[2])
         nova_linha[2] = diagnosticos.index(linha[2])
         nova_tabela.append(nova_linha)
 
-    with open('diagnosticos.txt', 'wb') as f:
-        pickle.dump(diagnosticos, f)
-
     with open('CSV/ativs_diag_prepr.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-
         for i in nova_tabela:
             filewriter.writerow(i)
 
 
 def diagnostico_str_to_float(diag):
-    with open('diagnosticos.txt', 'rb') as f:
+    with open('bin/diagnosticos_list.bin', 'rb') as f:
         diagnosticos = pickle.load(f)
     return diagnosticos.index(diag) / len(diagnosticos)
 
@@ -118,10 +113,24 @@ if __name__ == '__main__':
     X = data_norm[:, 0]
     Y = data_norm[:, 1:]
 
+    # quantidade de camadas e neuronios, pesquisar se tem como o otimizador fazer isso.
     model = Sequential()
-    model.add(Dense(150, input_dim=1, activation='tanh'))
+    model.add(Dense(150, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
     model.add(Dense(150, activation='tanh'))
-    model.add(Dense(23, activation='softmax'))
+    model.add(Dense(23, activation='softmax'))  # falar disto na discertacao, como desafio encontrado.
+    # relu eh boa quando tem muitos outliers
+    # quantidade de dados pra simulacao: 10k dataset
+    # fazer testes com varias funcoes de ativacao com o mesmo dataset
+    # classes balanceadas: raro no mundo real.
+    # uma ideia eh usar uma serie temporal, por turno. tem redes neurais projetadas para isto
+    # mais importante: divisao treino / teste, crossvalidation com diferente distribuicao, aumentar tamanho simulacao,
+    # # parte experimental, testar com novas  distribuicoes, balanceamento (dificil), series temporais
+    # cross-validation nao muda mto se nao usar distribuicao diferente.
+    # tcc de series temporarias: https://repositorio.ufsc.br/handle/123456789/223843
+    # ciencia de dados: fica bom fazer analise descritiva de dados: media, mediana, quartis, formato dos dados:
+    # por diagnostico. eh um diagrama de duracao por diagnostico: X=atividades nas, Y= duracao.
+    # deixar claro que a escolha de atividades que a nn faz eh somente para a estimativa de num de enfermeiros, e nao
+    # para decidir atividades a serem executadas para pacientes especificos
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
@@ -138,6 +147,13 @@ if __name__ == '__main__':
     print("tempo de execucao (s):", tempof - tempoi)
 
     model.save('modelo_nn')
+    # TODO: separacao de classe de teste validacao: 80 treino, 10 teste, 10 val.
+    # melhor: 80 treino, 20 teste, cross-validation pra val.
+    # TODO: fazer treinamento com uma simulacao e validacao com outra simulacao, eh bem importante
+    #  cross dataset validation
+    # conlcusoes: limitacao: independente da distribuicao, a rede vai aprender com aquela distribuicao ( normal). se
+    # tiver uma simulacao com uma distribuicao pra treinamento, mas outra distribuicao pra testes. trabalhos futuros.
+    # outra questao: durante a pandemia, eh outro cenario. oq mudou? se treinar com diferentes cenarios, fica melhor
 
     # graficos de acuracia e validacao
     plt.plot(history.history['accuracy'])

@@ -1,3 +1,6 @@
+import os
+import pickle
+
 from matplotlib import pyplot as plt
 
 import Diagnosticos
@@ -10,7 +13,7 @@ from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
-from nn_ativs_por_pac import evaluate as nn_evaluate
+# from nn_ativs_por_pac import evaluate as nn_evaluate
 
 
 def escolher_atividades(diagnostico):
@@ -412,20 +415,21 @@ def calcular_resultados():
         resultado_pratico.append(t_parcial)
 
     # resultados da rede neural
-    resultado_nn = []
-    for dia in dias:
-        t_parcial = 0.0
-        for paciente in pacientes:
-            # TODO: mudar para evaluar por batch
-            atividades = nn_evaluate(paciente.get_diagnostico())
-            print('evaluate paciente='+str(paciente.get_codigo()) + ', dia='+str(dia.date()))
-            for atividade in atividades:
-                t_parcial += PontosNAS[atividade]
-        resultado_nn.append(t_parcial)
+    # resultado_nn = []
+    # for dia in dias:
+    #     t_parcial = 0.0
+    #     for paciente in pacientes:
+    #         # TODO: mudar para evaluar por batch
+                # TODO: pode ser amostral.
+    #         atividades = nn_evaluate(paciente.get_diagnostico())
+    #         print('evaluate paciente='+str(paciente.get_codigo()) + ', dia='+str(dia.date()))
+    #         for atividade in atividades:
+    #             t_parcial += PontosNAS[atividade]
+    #     resultado_nn.append(t_parcial)
 
     plt.plot(resultado_teorico)
     plt.plot(resultado_pratico)
-    plt.plot(resultado_nn)
+    # plt.plot(resultado_nn)
     plt.ylabel('Pontos NAS')
     plt.xlabel('Dia')
     plt.legend(['Resultado Teorico', 'Resultado Prático', 'Resultado Rede Neural'])
@@ -460,22 +464,95 @@ def calcular_resultados():
     # plt.show()
 
 
+def salvar_simulacao():
+    with open('bin/pacientes.bin', 'wb') as f:
+        pickle.dump(pacientes, f)
+    with open('bin/data_inicio_sim.bin', 'wb') as f:
+        pickle.dump(data_inicio_sim, f)
+    with open('bin/total_dias.bin', 'wb') as f:
+        pickle.dump(total_dias, f)
+    with open('bin/enfermeiros.bin', 'wb') as f:
+        pickle.dump(enfermeiros, f)
+    with open('bin/tecnicos.bin', 'wb') as f:
+        pickle.dump(tecnicos, f)
+    with open('bin/horas_turno.bin', 'wb') as f:
+        pickle.dump(horas_turno, f)
+    with open('bin/atendimentos.bin', 'wb') as f:
+        pickle.dump(atendimentos, f)
+    with open('bin/diagnosticos_list.bin', 'wb') as f:
+        pickle.dump(Diagnosticos.Index.keys(), f)
+
+
+def load_pacientes():
+    with open('bin/pacientes.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_data_inicio_sim():
+    with open('bin/data_inicio_sim.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_total_dias():
+    with open('bin/total_dias.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_enfermeiros():
+    with open('bin/enfermeiros.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_tecnicos():
+    with open('bin/tecnicos.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_horas_turno():
+    with open('bin/horas_turno.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_atendimentos():
+    with open('bin/atendimentos.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def delete_old_files():
+    for f in os.listdir('/bin/'):
+        os.remove(os.path.join('/bin/', f))
+
+
 if __name__ == '__main__':
 
-    pacientes = simular_pacientes(50)
-    # exportar_pacientes()
-    data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
-    total_dias = 20
+    nova_simulacao = True
+    if nova_simulacao:
+        delete_old_files()
+        pacientes = simular_pacientes(50)
+        data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
+        total_dias = 20
+        enfermeiros = simular_enfermeiros(7*50)
+        tecnicos = simular_tecnicos(10*50)
+        horas_turno = 12
+        atendimentos = simular_atendimentos()
+        salvar_simulacao()
+        # TODO: delete old csv and bin
 
-    enfermeiros = simular_enfermeiros(7*50)
-    tecnicos = simular_tecnicos(10*50)
-    horas_turno = 12
+    else:
+        pacientes = load_pacientes()
+        data_inicio_sim = load_data_inicio_sim()
+        total_dias = load_total_dias()
+        enfermeiros = load_enfermeiros()
+        tecnicos = load_tecnicos()
+        horas_turno = load_horas_turno()
+        atendimentos = load_atendimentos()
+        Diagnosticos.add_atividades_faltantes()
+
+    exportar_ativs_por_diag()
+    calcular_resultados()
+
     # exportar_enfermeiros()
-
-    atendimentos = simular_atendimentos()
+    # exportar_pacientes()
     # exportar_antendimentos(atendimentos)
     # exportar_antendimentos_nn(atendimentos)
     # exportar_horas_trabalhadas()
-    exportar_ativs_por_diag()
-    calcular_resultados()
-    # TODO: adicionar save and load de simulacao.
