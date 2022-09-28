@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-    history = model.fit(X, Y, epochs=10, batch_size=10)
+    history = model.fit(X, Y, epochs=10, batch_size=10, validation_split=0.2)
 
     _, accuracy = model.evaluate(X, Y)
     print('Accuracy: %.2f' % (accuracy * 100))
@@ -147,10 +147,8 @@ if __name__ == '__main__':
     print("tempo de execucao (s):", tempof - tempoi)
 
     model.save('modelo_nn')
-    # TODO: separacao de classe de teste validacao: 80 treino, 10 teste, 10 val.
-    # melhor: 80 treino, 20 teste, cross-validation pra val.
-    # TODO: fazer treinamento com uma simulacao e validacao com outra simulacao, eh bem importante
-    #  cross dataset validation
+    # TODO: fazer treinamento com uma simulacao e validacao com outra simulacao, eh bem importante. cross dataset
+    #  validation
     # conlcusoes: limitacao: independente da distribuicao, a rede vai aprender com aquela distribuicao ( normal). se
     # tiver uma simulacao com uma distribuicao pra treinamento, mas outra distribuicao pra testes. trabalhos futuros.
     # outra questao: durante a pandemia, eh outro cenario. oq mudou? se treinar com diferentes cenarios, fica melhor
@@ -180,6 +178,5 @@ if __name__ == '__main__':
     # loss: 124.5392 - accuracy: 0.7756 - elu
     # loss: 16.7161 - accuracy: 0.7756 - tanh
 
-    # TODO: fix duracao com enfermeiro & tecnico
+    # ?: fix duracao com enfermeiro & tecnico
     # TODO: comparacao pontos NAS totais calc pela nn vs teoricos pelos papers vs simulados.
-    # TODO: lista de diagnosticos pode estar em ordem diferente em cada execucao

@@ -1,8 +1,7 @@
-import os
 import pickle
+import numpy as np
 
 from matplotlib import pyplot as plt
-
 import Diagnosticos
 from pontosNAS import PontosNAS
 import math
@@ -13,7 +12,7 @@ from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
-# from nn_ativs_por_pac import evaluate as nn_evaluate
+#from nn_ativs_por_pac import evaluate as nn_evaluate
 
 
 def escolher_atividades(diagnostico):
@@ -189,7 +188,7 @@ def simular_tecnicos(quantidade):
     return tecnicos
 
 
-def simular_atendimentos():  # TODO: adicionar dias de folga
+def simular_atendimentos():
     variancia = 1
     sigma = math.sqrt(variancia)
 
@@ -207,14 +206,14 @@ def simular_atendimentos():  # TODO: adicionar dias de folga
 
             enfermeiros_disponiveis = []
             for enfermeiro_aux in enfermeiros:
-                if dia not in enfermeiro_aux.get_dias_trabalhados():
+                if dia not in enfermeiro_aux.get_dias_trabalhados() and dia not in enfermeiro_aux.get_dias_folgados():
                     enfermeiros_disponiveis.append(enfermeiro_aux)
             if len(enfermeiros_disponiveis) == 0:
                 raise Exception('Enfermeiros insuficientes!')
 
             tecnicos_disponiveis = []
             for tecnico_aux in tecnicos:
-                if dia not in tecnico_aux.get_dias_trabalhados():
+                if dia not in tecnico_aux.get_dias_trabalhados() and dia not in tecnico_aux.get_dias_folgados():
                     tecnicos_disponiveis.append(tecnico_aux)
             if len(tecnicos_disponiveis) == 0:
                 raise Exception('Tecnicos insuficientes!')
@@ -242,7 +241,9 @@ def simular_atendimentos():  # TODO: adicionar dias de folga
                 if data_inicio_atividade > fim_turno:  # proximo turno
 
                     enfermeiro.add_dia_trabalhado(dia, data_inicio_atividade - data_inicio_turno)
+                    enfermeiro.add_dia_folgado(dia + datetime.timedelta(days=1))
                     tecnico.add_dia_trabalhado(dia, data_inicio_atividade - data_inicio_turno)
+                    tecnico.add_dia_folgado(dia + datetime.timedelta(days=1))
 
                     # trocando de turno
                     enfermeiro = random.choice(enfermeiros_disponiveis)
@@ -415,17 +416,19 @@ def calcular_resultados():
         resultado_pratico.append(t_parcial)
 
     # resultados da rede neural
+    # TODO: mudar para evaluar por batch
+    # TODO: pode ser amostral.
     # resultado_nn = []
     # for dia in dias:
     #     t_parcial = 0.0
     #     for paciente in pacientes:
-    #         # TODO: mudar para evaluar por batch
-                # TODO: pode ser amostral.
     #         atividades = nn_evaluate(paciente.get_diagnostico())
     #         print('evaluate paciente='+str(paciente.get_codigo()) + ', dia='+str(dia.date()))
     #         for atividade in atividades:
     #             t_parcial += PontosNAS[atividade]
     #     resultado_nn.append(t_parcial)
+
+    # TODO: adicionar a porcentagem no primeiro grafico.
 
     plt.plot(resultado_teorico)
     plt.plot(resultado_pratico)
@@ -518,6 +521,46 @@ def load_atendimentos():
         return pickle.load(f)
 
 
+def plot_num_ativ_por_diag():
+    n_ativs_desconhecido = {}
+    for i in PontosNAS:
+        n_ativs_desconhecido[i] = 0
+    n_ativs_covid = n_ativs_desconhecido.copy()
+    n_ativs_queimado = n_ativs_desconhecido.copy()
+    n_ativs_trauma = n_ativs_desconhecido.copy()
+    n_pacientes_por_diag = [0, 0, 0, 0]
+
+    for atendimento in atendimentos:
+        if atendimento.get_paciente().get_diagnostico() == 'desconhecido':
+            n_ativs_desconhecido[atendimento.get_atividade_str()] += 1
+        elif atendimento.get_paciente().get_diagnostico() == 'covid-19':
+            n_ativs_covid[atendimento.get_atividade_str()] += 1
+        elif atendimento.get_paciente().get_diagnostico() == 'queimado':
+            n_ativs_queimado[atendimento.get_atividade_str()] += 1
+        else:
+            n_ativs_trauma[atendimento.get_atividade_str()] += 1
+    for paciente in pacientes:
+        if paciente.get_diagnostico() == 'desconhecido':
+            n_pacientes_por_diag[0] += 1
+        elif paciente.get_diagnostico() == 'covid-19':
+            n_pacientes_por_diag[1] += 1
+        elif paciente.get_diagnostico() == 'queimado':
+            n_pacientes_por_diag[2] += 1
+        else:
+            n_pacientes_por_diag[3] += 1
+
+    plt.scatter(list(PontosNAS.keys()), [a / (n_pacientes_por_diag[0] * total_dias) for a in list(n_ativs_desconhecido.values())], marker='o', zorder=2)
+    plt.scatter(list(PontosNAS.keys()), [a / (n_pacientes_por_diag[1] * total_dias) for a in list(n_ativs_covid.values())], marker='s', zorder=3)
+    plt.scatter(list(PontosNAS.keys()), [a / (n_pacientes_por_diag[2] * total_dias) for a in list(n_ativs_queimado.values())], marker='x', zorder=4)
+    plt.scatter(list(PontosNAS.keys()), [a / (n_pacientes_por_diag[3] * total_dias) for a in list(n_ativs_trauma.values())], marker='^', zorder=5)
+    plt.xlabel('Atividades')
+    plt.ylabel('Frequencia por dia por paciente')
+    plt.legend(['Desconhecido', 'Covid-19', 'Queimado', 'Trauma'])
+
+    plt.grid(axis='x', zorder=1)
+    plt.show()
+
+
 if __name__ == '__main__':
 
     nova_simulacao = False
@@ -541,8 +584,9 @@ if __name__ == '__main__':
         atendimentos = load_atendimentos()
         Diagnosticos.add_atividades_faltantes()
 
-    exportar_ativs_por_diag()
-    calcular_resultados()
+    #exportar_ativs_por_diag()
+    plot_num_ativ_por_diag()
+    #calcular_resultados()
 
     # exportar_enfermeiros()
     # exportar_pacientes()
