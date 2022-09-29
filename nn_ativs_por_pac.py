@@ -42,21 +42,11 @@ def diagnostico_str_to_float(diag):
     return diagnosticos.index(diag) / len(diagnosticos)
 
 
-def evaluate(diagnostico_str):
-    model = keras.models.load_model('modelo_nn')
-    diagnostico_fl = diagnostico_str_to_float(diagnostico_str)
-    #atividades_fl = model.predict([diagnostico_fl], batch_size=1, verbose=0).tolist()[0]
-    #atividades_fl = model([diagnostico_fl], training=False).tolist()[0]
-    #atividades_fl = model.predict_on_batch([diagnostico_fl]).tolist()[0]
-    #atividades_fl = model([diagnostico_fl]).tolist()[0]
-    #atividades_fl = model(tf.expand_dims([diagnostico_fl], axis=1).shape)
-    atividades_fl = model(numpy.array([diagnostico_fl]))
-    atividades_fl = numpy.array(atividades_fl).tolist()[0]
-    #atividades_fl = model([[diagnostico_fl]])
+def atividades_fl_to_str(atividades_fl):
     atividades = []
-    if atividades_fl[0] < 1/3:
+    if atividades_fl[0] < 1 / 3:
         atividades.append('1a')
-    elif atividades_fl[0] < 2/3:
+    elif atividades_fl[0] < 2 / 3:
         atividades.append('1b')
     else:
         atividades.append('1c')
@@ -65,18 +55,18 @@ def evaluate(diagnostico_str):
     if atividades_fl[2] > 0.5:
         atividades.append('3')
 
-    if atividades_fl[3] < 1/3:
+    if atividades_fl[3] < 1 / 3:
         atividades.append('4a')
-    elif atividades_fl[3] < 2/3:
+    elif atividades_fl[3] < 2 / 3:
         atividades.append('4b')
     else:
         atividades.append('4c')
     if atividades_fl[4] > 0.5:
         atividades.append('5')
 
-    if atividades_fl[5] < 1/3:
+    if atividades_fl[5] < 1 / 3:
         atividades.append('6a')
-    elif atividades_fl[5] < 2/3:
+    elif atividades_fl[5] < 2 / 3:
         atividades.append('6b')
     else:
         atividades.append('6c')
@@ -86,9 +76,9 @@ def evaluate(diagnostico_str):
     else:
         atividades.append('7b')
 
-    if atividades_fl[7] < 1/3:
+    if atividades_fl[7] < 1 / 3:
         atividades.append('8a')
-    elif atividades_fl[7] < 2/3:
+    elif atividades_fl[7] < 2 / 3:
         atividades.append('8b')
     else:
         atividades.append('8c')
@@ -97,6 +87,40 @@ def evaluate(diagnostico_str):
         if atividades_fl[i] > 0.5:
             atividades.append(str(i))
     return atividades
+
+
+def evaluate_batch(diagnosticos):
+    model = keras.models.load_model('modelo_nn')
+    diagnosticos_fl = [diagnostico_str_to_float(d) for d in diagnosticos]
+    atividades_fl = model.predict(numpy.array(diagnosticos_fl), verbose=2)
+    #atividades_fl = model(numpy.array(diagnosticos_fl))
+    #atividades_fl = numpy.array(atividades_fl).tolist()
+
+    all_atividades = []
+    for i in atividades_fl:
+        all_atividades.append(atividades_fl_to_str(i))
+    return all_atividades
+
+
+def evaluate(diagnostico_str):
+    model = keras.models.load_model('modelo_nn')
+    # um dado por vez:
+    diagnostico_fl = diagnostico_str_to_float(diagnostico_str)
+    atividades_fl = model(numpy.array([diagnostico_fl]))
+    atividades_fl = numpy.array(atividades_fl).tolist()[0]
+
+    # multiplos dados por vez: melhor performance
+
+    # atividades_fl = model.predict([diagnostico_fl], batch_size=1, verbose=0).tolist()[0]
+    # atividades_fl = model([diagnostico_fl], training=False).tolist()[0]
+    # atividades_fl = model.predict_on_batch([diagnostico_fl]).tolist()[0]
+    # atividades_fl = model([diagnostico_fl]).tolist()[0]
+    # atividades_fl = model(tf.expand_dims([diagnostico_fl], axis=1).shape)
+    #atividades_fl = model([[diagnostico_fl]])
+
+    #atividades = atividades_fl_to_str(atividades_fl)
+
+    return atividades_fl_to_str(atividades_fl)
 
 
 if __name__ == '__main__':
@@ -134,7 +158,7 @@ if __name__ == '__main__':
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-    history = model.fit(X, Y, epochs=10, batch_size=10, validation_split=0.2)
+    history = model.fit(X, Y, epochs=10, batch_size=100, validation_split=0.2)
 
     _, accuracy = model.evaluate(X, Y)
     print('Accuracy: %.2f' % (accuracy * 100))
@@ -155,13 +179,17 @@ if __name__ == '__main__':
 
     # graficos de acuracia e validacao
     plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
     plt.ylabel('Acurácia')
     plt.xlabel('Época')
+    plt.legend(['Treinamento', 'Validacao'])
     plt.show()
 
     plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
     plt.ylabel('Perda')
     plt.xlabel('Época')
+    plt.legend(['Treinamento', 'Validacao'])
     plt.show()
 
     # print("False positives: ", keras.metrics.FalsePositives(thresholds=None, name=None, dtype=None).result().numpy())

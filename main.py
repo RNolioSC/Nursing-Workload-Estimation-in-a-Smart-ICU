@@ -12,7 +12,8 @@ from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
-#from nn_ativs_por_pac import evaluate as nn_evaluate
+from nn_ativs_por_pac import evaluate as nn_evaluate
+from nn_ativs_por_pac import evaluate_batch as nn_evaluate_batch
 
 
 def escolher_atividades(diagnostico):
@@ -78,6 +79,7 @@ def simular_nas(sigma, atividades):
 
 
 def exportar_antendimentos(atendimentos):
+    print("exportar_antendimentos...")
     with open('CSV/atendimentos.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
@@ -107,6 +109,7 @@ def exportar_antendimentos(atendimentos):
 
 
 def exportar_antendimentos_nn(atendimentos):
+    print("exportar_antendimentos_nn...")
     with open('CSV/atendimentos_nn.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
@@ -280,6 +283,7 @@ def simular_atendimentos():
 
 
 def exportar_enfermeiros():
+    print("exportar_enfermeiros...")
     with open('CSV/enfermeiros.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
@@ -316,7 +320,7 @@ def minutos_to_pontos(minutos):
 
 
 def exportar_horas_trabalhadas():
-
+    print("exportar_horas_trabalhadas...")
     with open('CSV/horas_trabalhadas.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
@@ -339,6 +343,7 @@ def exportar_horas_trabalhadas():
 
 
 def exportar_pacientes():
+    print("exportar_pacientes...")
     with open('CSV/pacientes.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
@@ -350,6 +355,7 @@ def exportar_pacientes():
 
 
 def exportar_ativs_por_diag():
+    print("exportar_ativs_por_diag...")
     dias = []
     for i in range(0, total_dias):
         dias.append(data_inicio_sim + datetime.timedelta(i))
@@ -418,6 +424,7 @@ def calcular_resultados():
     # resultados da rede neural
     # TODO: mudar para evaluar por batch
     # TODO: pode ser amostral.
+    #
     # resultado_nn = []
     # for dia in dias:
     #     t_parcial = 0.0
@@ -428,11 +435,32 @@ def calcular_resultados():
     #             t_parcial += PontosNAS[atividade]
     #     resultado_nn.append(t_parcial)
 
+    # nn por batch:
+    resultado_nn = []
+    for dia in dias:
+        t_parcial = 0.0
+        diagnosticos = [p.get_diagnostico() for p in pacientes]
+        all_atividades = nn_evaluate_batch(diagnosticos)
+        print("dia=", dia.date())
+
+        for atividades in all_atividades:  # [1a,2,3,...]
+            for atividade in atividades:
+                t_parcial += PontosNAS[atividade]
+        resultado_nn.append(t_parcial)
+
+        # print('evaluate dia=' + str(dia.date()))
+        # for paciente in pacientes:
+        #     atividades = nn_evaluate(paciente.get_diagnostico())
+        #     #print('evaluate paciente=' + str(paciente.get_codigo()) + ', dia=' + str(dia.date()))
+        #     for atividade in atividades:
+        #         t_parcial += PontosNAS[atividade]
+        #resultado_nn.append(t_parcial)
+
     # TODO: adicionar a porcentagem no primeiro grafico.
 
     plt.plot(resultado_teorico)
     plt.plot(resultado_pratico)
-    # plt.plot(resultado_nn)
+    plt.plot(resultado_nn)
     plt.ylabel('Pontos NAS')
     plt.xlabel('Dia')
     plt.legend(['Resultado Teorico', 'Resultado Prático', 'Resultado Rede Neural'])
@@ -554,11 +582,12 @@ def plot_num_ativ_por_diag():
     plt.scatter(list(PontosNAS.keys()), [a / (n_pacientes_por_diag[2] * total_dias) for a in list(n_ativs_queimado.values())], marker='x', zorder=4)
     plt.scatter(list(PontosNAS.keys()), [a / (n_pacientes_por_diag[3] * total_dias) for a in list(n_ativs_trauma.values())], marker='^', zorder=5)
     plt.xlabel('Atividades')
-    plt.ylabel('Frequencia por dia por paciente')
+    plt.ylabel('Frequencia média por dia por paciente')
     plt.legend(['Desconhecido', 'Covid-19', 'Queimado', 'Trauma'])
 
     plt.grid(axis='x', zorder=1)
     plt.show()
+    # TODO: add outro eixo com o num total de amostras, ie: list(n_ativs_trauma.values())
 
 
 if __name__ == '__main__':
@@ -567,7 +596,7 @@ if __name__ == '__main__':
     if nova_simulacao:
         pacientes = simular_pacientes(50)
         data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
-        total_dias = 20
+        total_dias = 365
         enfermeiros = simular_enfermeiros(7*50)
         tecnicos = simular_tecnicos(10*50)
         horas_turno = 12
@@ -584,12 +613,13 @@ if __name__ == '__main__':
         atendimentos = load_atendimentos()
         Diagnosticos.add_atividades_faltantes()
 
-    #exportar_ativs_por_diag()
-    plot_num_ativ_por_diag()
-    #calcular_resultados()
+    # exportar_ativs_por_diag()
+    #plot_num_ativ_por_diag()
+    calcular_resultados()
 
     # exportar_enfermeiros()
     # exportar_pacientes()
     # exportar_antendimentos(atendimentos)
     # exportar_antendimentos_nn(atendimentos)
     # exportar_horas_trabalhadas()
+    # TODO: CSV writting otimizar -- Dask
