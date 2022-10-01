@@ -376,15 +376,17 @@ def exportar_ativs_por_diag():
         for linha in tabela:
             if linha[posCodPac] == atendimento.get_paciente().get_codigo() and \
                     linha[posDia] == atendimento.get_dia_inicio_str():
-                if len(atendimento.get_atividade_str()) == 1:
+                if len(atendimento.get_atividade_str()) > 1 and atendimento.get_atividade_str()[1] == 'a':
                     linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 1
+                elif len(atendimento.get_atividade_str()) > 1 and atendimento.get_atividade_str()[1] == 'b':
+                    linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 2
+                elif len(atendimento.get_atividade_str()) > 1 and atendimento.get_atividade_str()[1] == 'c':
+                    linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 3
                 else:
-                    if atendimento.get_atividade_str()[1] == 'a':
-                        linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 1
-                    elif atendimento.get_atividade_str()[1] == 'b':
-                        linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 2
-                    elif atendimento.get_atividade_str()[1] == 'c':
-                        linha[posAtiv + int(atendimento.get_atividade_str()[0])] = 3
+                    try:
+                        linha[posAtiv + int(atendimento.get_atividade_str())] = 1
+                    except ValueError:
+                        raise Exception("Erro em numero NAS de atendimento")
 
     with open('CSV/ativs_diag.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
@@ -613,7 +615,7 @@ if __name__ == '__main__':
         atendimentos = load_atendimentos()
         Diagnosticos.add_atividades_faltantes()
 
-    # exportar_ativs_por_diag()
+    #exportar_ativs_por_diag()
     #plot_num_ativ_por_diag()
     calcular_resultados()
 

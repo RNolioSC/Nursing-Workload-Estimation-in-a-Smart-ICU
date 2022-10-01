@@ -92,7 +92,7 @@ def atividades_fl_to_str(atividades_fl):
 def evaluate_batch(diagnosticos):
     model = keras.models.load_model('modelo_nn')
     diagnosticos_fl = [diagnostico_str_to_float(d) for d in diagnosticos]
-    atividades_fl = model.predict(numpy.array(diagnosticos_fl), verbose=2)
+    atividades_fl = model.predict(numpy.array(diagnosticos_fl), verbose=0)
     #atividades_fl = model(numpy.array(diagnosticos_fl))
     #atividades_fl = numpy.array(atividades_fl).tolist()
 
@@ -130,18 +130,27 @@ if __name__ == '__main__':
     tempoi = time.time()
 
     data_preprocessing()
-    dataset = genfromtxt(r'CSV/ativs_diag_prepr.csv', encoding='latin-1', delimiter=',', skip_header=2)
+    dataset = genfromtxt(r'CSV/ativs_diag_prepr.csv', encoding='latin-1', delimiter=',')
     dataset = dataset[..., 2:]  # drop codPaciente, Dia
 
     data_norm = normalize(dataset, axis=0, norm='max')
     X = data_norm[:, 0]
     Y = data_norm[:, 1:]
+    #
+    # for i in X:
+    #     if i>1 or i<0:
+    #         raise Exception
+    # for j in Y:
+    #     for k in j:
+    #         if k>1 or k<0:
+    #             raise Exception
 
     # quantidade de camadas e neuronios, pesquisar se tem como o otimizador fazer isso.
     model = Sequential()
     model.add(Dense(150, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
     model.add(Dense(150, activation='tanh'))
     model.add(Dense(23, activation='softmax'))  # falar disto na discertacao, como desafio encontrado.
+    # p/ tese: tanh as vezes nao converge (accuracy: 0.0426)
     # relu eh boa quando tem muitos outliers
     # quantidade de dados pra simulacao: 10k dataset
     # fazer testes com varias funcoes de ativacao com o mesmo dataset
@@ -157,7 +166,8 @@ if __name__ == '__main__':
     # para decidir atividades a serem executadas para pacientes especificos
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
+    # tf.keras.optimizers.Adam(learning_rate=0.1)
+    # adadelta, adagrad
     history = model.fit(X, Y, epochs=10, batch_size=100, validation_split=0.2)
 
     _, accuracy = model.evaluate(X, Y)
@@ -165,7 +175,28 @@ if __name__ == '__main__':
 
     # predictions = model.predict_classes(X)  # deprecated
     predict_y = model.predict(X)
-    classes_y = numpy.argmax(predict_y, axis=1)
+    #classes_y = numpy.argmax(predict_y, axis=1)
+    #print(Y)
+    #print(predict_y)
+    #print(model.predict([0, 1/3, 2/3, 3/3]))
+    print(model.predict([1, 2, 3]))
+    #model.layers.BatchNormalization(momentum=0.01)
+    #predict_y = model(X, training=False)
+    #
+    # oldi = Y[0]
+    # count = 0
+    # for i in range(0, len(Y)):
+    #     if Y[i][0] != oldi[0]:
+    #         print('yy', Y[i])
+    #         print('predicted', numpy.array(predict_y[i]).tolist())
+    #         oldi = Y[i]
+    #         count = count + 1
+    #     if count > 20:
+    #         break
+    # plt.scatter(Y, [a for a in Y], '.')
+    # plt.scatter(predict_y, [a for a in Y], 'o')
+    # plt.legend('Yy', 'predicted')
+    # plt.show()
 
     tempof = time.time()
     print("tempo de execucao (s):", tempof - tempoi)
@@ -182,14 +213,14 @@ if __name__ == '__main__':
     plt.plot(history.history['val_accuracy'])
     plt.ylabel('Acurácia')
     plt.xlabel('Época')
-    plt.legend(['Treinamento', 'Validacao'])
+    plt.legend(['Treinamento', 'Teste'])
     plt.show()
 
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.ylabel('Perda')
     plt.xlabel('Época')
-    plt.legend(['Treinamento', 'Validacao'])
+    plt.legend(['Treinamento', 'Teste'])
     plt.show()
 
     # print("False positives: ", keras.metrics.FalsePositives(thresholds=None, name=None, dtype=None).result().numpy())
