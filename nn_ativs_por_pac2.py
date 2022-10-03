@@ -2,6 +2,7 @@ from numpy import genfromtxt
 import numpy
 import matplotlib.pyplot as plt
 from keras.models import Sequential
+from keras.models import Model
 from keras.layers import Dense
 from keras.preprocessing.text import text_to_word_sequence
 from keras.preprocessing.text import one_hot
@@ -147,10 +148,42 @@ if __name__ == '__main__':
     #             raise Exception
 
     # quantidade de camadas e neuronios, pesquisar se tem como o otimizador fazer isso.
-    model = Sequential()
-    model.add(Dense(150, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
-    model.add(Dense(150, activation='tanh'))
-    model.add(Dense(23, activation='softmax'))  # falar disto na discertacao, como desafio encontrado.
+
+    input_layer = keras.layers.Input((1,))
+    hidden_layer = Dense(150, activation='tanh')(input_layer)
+
+    output_1 = Dense(1, activation='softmax')(hidden_layer)
+    output_2 = Dense(1, activation='softmax')(hidden_layer)
+    output_3 = Dense(1, activation='softmax')(hidden_layer)
+    output_4 = Dense(1, activation='softmax')(hidden_layer)
+    output_5 = Dense(1, activation='softmax')(hidden_layer)
+    output_6 = Dense(1, activation='softmax')(hidden_layer)
+    output_7 = Dense(1, activation='softmax')(hidden_layer)
+    output_8 = Dense(1, activation='softmax')(hidden_layer)
+    output_9 = Dense(1, activation='softmax')(hidden_layer)
+    output_10 = Dense(1, activation='softmax')(hidden_layer)
+    output_11 = Dense(1, activation='softmax')(hidden_layer)
+    output_12 = Dense(1, activation='softmax')(hidden_layer)
+    output_13 = Dense(1, activation='softmax')(hidden_layer)
+    output_14 = Dense(1, activation='softmax')(hidden_layer)
+    output_15 = Dense(1, activation='softmax')(hidden_layer)
+    output_16 = Dense(1, activation='softmax')(hidden_layer)
+    output_17 = Dense(1, activation='softmax')(hidden_layer)
+    output_18 = Dense(1, activation='softmax')(hidden_layer)
+    output_19 = Dense(1, activation='softmax')(hidden_layer)
+    output_20 = Dense(1, activation='softmax')(hidden_layer)
+    output_21 = Dense(1, activation='softmax')(hidden_layer)
+    output_22 = Dense(1, activation='softmax')(hidden_layer)
+    output_23 = Dense(1, activation='softmax')(hidden_layer)
+
+    model = Model(input_layer, [output_1, output_2, output_3, output_4, output_5, output_6, output_7, output_8, output_9,
+                                output_10, output_11, output_12, output_13, output_14, output_15, output_16, output_17,
+                                output_18, output_19, output_20, output_21, output_22, output_23])
+
+    # model = Sequential()
+    # model.add(Dense(50, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
+    # model.add(Dense(50, activation='tanh'))
+    # model.add(Dense(23, activation='softmax'))  # falar disto na discertacao, como desafio encontrado.
     # p/ tese: tanh as vezes nao converge (accuracy: 0.0426)
     #   relu, softplus, exponential: causa nan
     # selu = retorna alguns 1's. acc=0.24
@@ -169,30 +202,38 @@ if __name__ == '__main__':
     # para decidir atividades a serem executadas para pacientes especificos
 
     #model.compile(loss='categorical_crossentropy', optimizer='Adagrad', metrics=['accuracy'], loss_weights=list(PontosNAS.values()))
-
-    model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-                  metrics=['TruePositives'], loss_weights=PontosNAS.values())
+    model.compile(loss='categorical_crossentropy', optimizer='Adam', metrics=['accuracy'])
 
     # causa nan: sgd
     # 14%: RMSprop, Adam, Nadam, Adamax. 38%: Adagrad, Ftrl
     # tf.keras.optimizers.Adam(learning_rate=0.1)
     # adadelta, adagrad
-    history = model.fit(X, Y, epochs=10, batch_size=100, validation_split=0.2)
+    #TODO: slice Y
+    sliced_y = []
+    for i in range(0, len(Y[0])):
+        sliced_y.append(Y[:, i])
+    history = model.fit(X, sliced_y, epochs=50, batch_size=100, validation_split=0.2)
 
-    _, accuracy = model.evaluate(X, Y)
-    print('Accuracy: %.2f' % (accuracy * 100))
-
+    accs = model.evaluate(X, [Y[:, 0], Y[:, 1], Y[:, 2], Y[:, 3:]])
+    #print('Accuracy: %.2f' % (accuracy * 100))
+    #print('acc1=', acc1,' acc2=', acc2,' acc3=', acc3,' acc4=', acc4)
+    print('accs=', accs[5:])
     # predictions = model.predict_classes(X)  # deprecated
     #predict_y = model.predict(X)
     #classes_y = numpy.argmax(predict_y, axis=1)
     #print(Y)
     #print(predict_y)
-    aux = model.predict([0, 1/3, 2/3, 3/3])
-    for i in range(0, len(aux)):
-        for j in range(0, len(aux[i])):
-            if aux[i][j] < 0.1:
-                aux[i][j]=0
-    print(aux)
+    # aux = model.predict([0, 1/3, 2/3, 3/3])
+    print('1=', list(model.predict([0 / 3])))  # Desconhecido
+    print('2=', list(model.predict([1 / 3])))  # Covid
+    print('3=', list(model.predict([2 / 3])))  # Queimado
+    print('4=', list(model.predict([3 / 3])))  # Trauma
+
+    # for i in range(0, len(aux)):
+    #     for j in range(0, len(aux[i])):
+    #         if aux[i][j] < 0.1:
+    #             aux[i][j]=0
+    #print(aux)
     #print('1...3', model.predict([1, 2, 3]))
     #model.layers.BatchNormalization(momentum=0.01)
     #predict_y = model(X, training=False)
@@ -221,21 +262,21 @@ if __name__ == '__main__':
     # conlcusoes: limitacao: independente da distribuicao, a rede vai aprender com aquela distribuicao ( normal). se
     # tiver uma simulacao com uma distribuicao pra treinamento, mas outra distribuicao pra testes. trabalhos futuros.
     # outra questao: durante a pandemia, eh outro cenario. oq mudou? se treinar com diferentes cenarios, fica melhor
-
-    # graficos de acuracia e validacao
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.ylabel('Acurácia')
-    plt.xlabel('Época')
-    plt.legend(['Treinamento', 'Teste'])
-    plt.show()
-
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.ylabel('Perda')
-    plt.xlabel('Época')
-    plt.legend(['Treinamento', 'Teste'])
-    plt.show()
+    #
+    # # graficos de acuracia e validacao
+    # plt.plot(history.history['accuracy'])
+    # plt.plot(history.history['val_accuracy'])
+    # plt.ylabel('Acurácia')
+    # plt.xlabel('Época')
+    # plt.legend(['Treinamento', 'Teste'])
+    # plt.show()
+    #
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.ylabel('Perda')
+    # plt.xlabel('Época')
+    # plt.legend(['Treinamento', 'Teste'])
+    # plt.show()
 
     # print("False positives: ", keras.metrics.FalsePositives(thresholds=None, name=None, dtype=None).result().numpy())
     #matrix = confusion_matrix(Y, predict_y)
