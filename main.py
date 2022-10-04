@@ -12,8 +12,7 @@ from Atendimento import Atendimento
 import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
-from nn_ativs_por_pac import evaluate as nn_evaluate
-from nn_ativs_por_pac import evaluate_batch as nn_evaluate_batch
+from nn_classification import evaluate_batch as nn_classif_evaluate_batch
 
 
 def escolher_atividades(diagnostico):
@@ -399,48 +398,89 @@ def exportar_ativs_por_diag():
             filewriter.writerow(linha)
 
 
-def calcular_resultados():
+def salvar_result_teo(resultado_teorico):
+    with open('resultados/teorico.bin', 'wb') as f:
+        pickle.dump(resultado_teorico, f)
+
+
+def salvar_result_sim(resultado_simulado):
+    with open('resultados/simulado.bin', 'wb') as f:
+        pickle.dump(resultado_simulado, f)
+
+
+def salvar_result_nn_classif(resultado_nn_classif):
+    with open('resultados/nn_classif.bin', 'wb') as f:
+        pickle.dump(resultado_nn_classif, f)
+
+
+def load_result_teo():
+    with open('resultados/teorico.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_result_sim():
+    with open('resultados/simulado.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def load_result_nn_classif():
+    with open('resultados/nn_classif.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_sim=False, recalcular_nn_classif=False):
     dias = []
     for i in range(0, total_dias):
         dias.append(data_inicio_sim + datetime.timedelta(i))
 
     # resultados teoricos:
-    resultado_teorico = []
-    # for dia in dias:
-    #     t_parcial = 0.0
-    #     for paciente in pacientes:
-    #         probabs = Diagnosticos.Index[paciente.get_diagnostico()]
-    #         for atividade in probabs:
-    #             t_parcial += probabs[atividade] * PontosNAS[atividade]
-    #     resultado_teorico.append(t_parcial)
+    if recalcular_teo or recalcular_all:
+        resultado_teorico = []
+        for dia in dias:
+            t_parcial = 0.0
+            for paciente in pacientes:
+                probabs = Diagnosticos.Index[paciente.get_diagnostico()]
+                for atividade in probabs:
+                    t_parcial += probabs[atividade] * PontosNAS[atividade]
+            resultado_teorico.append(t_parcial)
+        salvar_result_teo(resultado_teorico)
+    else:
+        resultado_teorico = load_result_teo()
 
     # resultados simulado:
-    resultado_simulado = []
-    # for dia in dias:
-    #     t_parcial = 0.0
-    #     for atendimento in atendimentos:
-    #         if atendimento.get_diaHoraInicio().date() == dia.date():
-    #             t_parcial += float(atendimento.get_pontuacao_str())
-    #     resultado_simulado.append(t_parcial)
+    if recalcular_sim or recalcular_all:
+        resultado_simulado = []
+        for dia in dias:
+            t_parcial = 0.0
+            for atendimento in atendimentos:
+                if atendimento.get_diaHoraInicio().date() == dia.date():
+                    t_parcial += float(atendimento.get_pontuacao_str())
+            resultado_simulado.append(t_parcial)
+        salvar_result_sim(resultado_simulado)
+    else:
+        resultado_simulado = load_result_sim()
 
-    # resultados da rede neural
-    resultado_nn = []
-    for dia in dias:
-        t_parcial = 0.0
-        diagnosticos = [p.get_diagnostico() for p in pacientes]
-        all_atividades = nn_evaluate_batch(diagnosticos)
-        print("nn_evaluate: dia=", dia.date())
+    # resultados da rede neural de classificacao
+    if recalcular_nn_classif or recalcular_all:
+        resultado_nn_classif = []
+        for dia in dias:
+            t_parcial = 0.0
+            diagnosticos = [p.get_diagnostico() for p in pacientes]
+            all_atividades = nn_classif_evaluate_batch(diagnosticos)
+            print("nn_evaluate: dia=", dia.date())
 
-        for atividades in all_atividades:  # [1a,2,3,...]
-            for atividade in atividades:
-                t_parcial += PontosNAS[atividade]
-        resultado_nn.append(t_parcial)
-
+            for atividades in all_atividades:  # [1a,2,3,...]
+                for atividade in atividades:
+                    t_parcial += PontosNAS[atividade]
+            resultado_nn_classif.append(t_parcial)
+        salvar_result_nn_classif(resultado_nn_classif)
+    else:
+        resultado_nn_classif = load_result_nn_classif()
     # TODO: add opcao de salvar resultados acima
 
     plt.plot(resultado_teorico)
     plt.plot(resultado_simulado)
-    plt.plot(resultado_nn)
+    plt.plot(resultado_nn_classif)
     plt.ylabel('Pontos NAS')
     plt.xlabel('Dia')
     plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado Rede Neural'])
@@ -448,7 +488,7 @@ def calcular_resultados():
 
     teo_vs_pr = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_simulado)]
     teo_vs_teo = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_teorico)]
-    teo_vs_nn = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn)]
+    teo_vs_nn = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn_classif)]
     plt.plot(teo_vs_teo)
     plt.plot(teo_vs_pr)
     plt.plot(teo_vs_nn)
@@ -456,13 +496,6 @@ def calcular_resultados():
     plt.xlabel('Dia')
     plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado Rede Neural'])
     plt.show()
-
-    # plt.plot(debug_teo[0:100])
-    # plt.plot(debug_pr[0:100])
-    # plt.ylabel('Pontos NAS')
-    # plt.xlabel('Dia')
-    # plt.legend(['Resultado Teorico', 'Resultado Prático'])
-    # plt.show()
 
     # aten_teo = []
     # aten_pra = []
@@ -572,6 +605,20 @@ def plot_num_ativ_por_diag():
     # TODO: add outro eixo com o num total de amostras, ie: list(n_ativs_trauma.values())
 
 
+def exportar_atendimentos(atendimentos):
+    print('exportar_atendimentos...')
+    to_export = [['codPaciente', 'diagnostico', 'atividade', 'pontosNAS']]
+    for atendimento in atendimentos:
+        aux = [atendimento.get_paciente().get_codigo(), atendimento.get_paciente().get_diagnostico(),
+               atendimento.get_atividade_str(), atendimento.get_pontuacao_str()]
+        to_export.append(aux)
+
+    with open('CSV/atendimentos.csv', 'w', newline='') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for linha in to_export:
+            filewriter.writerow(linha)
+
+
 if __name__ == '__main__':
 
     nova_simulacao = False
@@ -595,9 +642,10 @@ if __name__ == '__main__':
         atendimentos = load_atendimentos()
         Diagnosticos.add_atividades_faltantes()
 
-    #exportar_ativs_por_diag()
-    #plot_num_ativ_por_diag()
-    calcular_resultados()
+    exportar_ativs_por_diag()  # usado pra nn_classification
+    # plot_num_ativ_por_diag()
+    ##### exportar_atendimentos(atendimentos)  # usado pra nn_regression
+    # calcular_resultados(recalcular_all=False)
 
     # exportar_enfermeiros()
     # exportar_pacientes()
