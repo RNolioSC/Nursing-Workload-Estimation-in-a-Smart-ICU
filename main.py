@@ -406,75 +406,55 @@ def calcular_resultados():
 
     # resultados teoricos:
     resultado_teorico = []
-    for dia in dias:
-        t_parcial = 0.0
-        for paciente in pacientes:
-            probabs = Diagnosticos.Index[paciente.get_diagnostico()]
-            for atividade in probabs:
-                t_parcial += probabs[atividade] * PontosNAS[atividade]
-        resultado_teorico.append(t_parcial)
-
-    # resultados praticos:
-    resultado_pratico = []
-    for dia in dias:
-        t_parcial = 0.0
-        for atendimento in atendimentos:
-            if atendimento.get_diaHoraInicio().date() == dia.date():
-                t_parcial += float(atendimento.get_pontuacao_str())
-        resultado_pratico.append(t_parcial)
-
-    # resultados da rede neural
-    # TODO: mudar para evaluar por batch
-    # TODO: pode ser amostral.
-    #
-    # resultado_nn = []
     # for dia in dias:
     #     t_parcial = 0.0
     #     for paciente in pacientes:
-    #         atividades = nn_evaluate(paciente.get_diagnostico())
-    #         print('evaluate paciente='+str(paciente.get_codigo()) + ', dia='+str(dia.date()))
-    #         for atividade in atividades:
-    #             t_parcial += PontosNAS[atividade]
-    #     resultado_nn.append(t_parcial)
+    #         probabs = Diagnosticos.Index[paciente.get_diagnostico()]
+    #         for atividade in probabs:
+    #             t_parcial += probabs[atividade] * PontosNAS[atividade]
+    #     resultado_teorico.append(t_parcial)
 
-    # nn por batch:
+    # resultados simulado:
+    resultado_simulado = []
+    # for dia in dias:
+    #     t_parcial = 0.0
+    #     for atendimento in atendimentos:
+    #         if atendimento.get_diaHoraInicio().date() == dia.date():
+    #             t_parcial += float(atendimento.get_pontuacao_str())
+    #     resultado_simulado.append(t_parcial)
+
+    # resultados da rede neural
     resultado_nn = []
     for dia in dias:
         t_parcial = 0.0
         diagnosticos = [p.get_diagnostico() for p in pacientes]
         all_atividades = nn_evaluate_batch(diagnosticos)
-        print("dia=", dia.date())
+        print("nn_evaluate: dia=", dia.date())
 
         for atividades in all_atividades:  # [1a,2,3,...]
             for atividade in atividades:
                 t_parcial += PontosNAS[atividade]
         resultado_nn.append(t_parcial)
 
-        # print('evaluate dia=' + str(dia.date()))
-        # for paciente in pacientes:
-        #     atividades = nn_evaluate(paciente.get_diagnostico())
-        #     #print('evaluate paciente=' + str(paciente.get_codigo()) + ', dia=' + str(dia.date()))
-        #     for atividade in atividades:
-        #         t_parcial += PontosNAS[atividade]
-        #resultado_nn.append(t_parcial)
-
-    # TODO: adicionar a porcentagem no primeiro grafico.
+    # TODO: add opcao de salvar resultados acima
 
     plt.plot(resultado_teorico)
-    plt.plot(resultado_pratico)
+    plt.plot(resultado_simulado)
     plt.plot(resultado_nn)
     plt.ylabel('Pontos NAS')
     plt.xlabel('Dia')
-    plt.legend(['Resultado Teorico', 'Resultado Prático', 'Resultado Rede Neural'])
+    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado Rede Neural'])
     plt.show()
 
-    teo_vs_pr = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_pratico)]
+    teo_vs_pr = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_simulado)]
     teo_vs_teo = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_teorico)]
+    teo_vs_nn = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn)]
     plt.plot(teo_vs_teo)
     plt.plot(teo_vs_pr)
+    plt.plot(teo_vs_nn)
     plt.ylabel('Porcentagem')
     plt.xlabel('Dia')
-    plt.legend(['Resultado Teorico', 'Resultado Prático'])
+    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado Rede Neural'])
     plt.show()
 
     # plt.plot(debug_teo[0:100])

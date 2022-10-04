@@ -27,8 +27,80 @@ def data_preprocessing():
 
     nova_tabela = []
     for linha in tabela:
-        nova_linha = linha
-        nova_linha[2] = diagnosticos.index(linha[2])
+        linha.pop(0)  # cod paciente
+        linha.pop(0)  # dia
+        nova_linha = [diagnosticos.index(linha.pop(0))]
+        ativ_1 = linha.pop(0)
+        if ativ_1 == '1':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_1 == '2':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_1 == '3':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        nova_linha.append(linha.pop(0))  # ativ 2 e 3
+        nova_linha.append(linha.pop(0))
+
+        ativ_4 = linha.pop(0)
+        if ativ_4 == '1':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_4 == '2':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_4 == '3':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+
+        nova_linha.append(linha.pop(0))  # ativ 5
+
+        ativ_6 = linha.pop(0)
+        if ativ_6 == '1':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_6 == '2':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_6 == '3':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+
+        ativ_7 = linha.pop(0)
+        if ativ_7 == '1':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_7 == '2':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+
+        ativ_8 = linha.pop(0)
+        if ativ_8 == '1':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_8 == '2':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+        if ativ_8 == '3':
+            nova_linha.append(1)
+        else:
+            nova_linha.append(0)
+
+        nova_linha.extend(linha)
         nova_tabela.append(nova_linha)
 
     with open('CSV/ativs_diag_prepr.csv', 'w', newline='') as csvfile:
@@ -40,53 +112,126 @@ def data_preprocessing():
 def diagnostico_str_to_float(diag):
     with open('bin/diagnosticos_list.bin', 'rb') as f:
         diagnosticos = pickle.load(f)
-    return diagnosticos.index(diag) / len(diagnosticos)
+    return diagnosticos.index(diag) / (len(diagnosticos)-1)
 
 
 def atividades_fl_to_str(atividades_fl):
+    atividades_fl = list(atividades_fl)
+    atividades_fl = [int(i) for i in atividades_fl]
     atividades = []
-    if atividades_fl[0] < 1 / 3:
+    if atividades_fl.pop(0) == 1:
         atividades.append('1a')
-    elif atividades_fl[0] < 2 / 3:
+        atividades_fl.pop(0)
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
         atividades.append('1b')
-    else:
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
         atividades.append('1c')
-    if atividades_fl[1] > 0.5:
+    else:
+        raise Exception
+
+    if atividades_fl.pop(0) == 1:
         atividades.append('2')
-    if atividades_fl[2] > 0.5:
+    if atividades_fl.pop(0) == 1:
         atividades.append('3')
 
-    if atividades_fl[3] < 1 / 3:
+    if atividades_fl.pop(0) == 1:
         atividades.append('4a')
-    elif atividades_fl[3] < 2 / 3:
+        atividades_fl.pop(0)
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
         atividades.append('4b')
-    else:
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
         atividades.append('4c')
-    if atividades_fl[4] > 0.5:
+    else:
+        raise Exception
+
+    if atividades_fl.pop(0) == 1:
         atividades.append('5')
 
-    if atividades_fl[5] < 1 / 3:
+    if atividades_fl.pop(0) == 1:
         atividades.append('6a')
-    elif atividades_fl[5] < 2 / 3:
+        atividades_fl.pop(0)
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
         atividades.append('6b')
-    else:
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
         atividades.append('6c')
+    else:
+        raise Exception
 
-    if atividades_fl[6] < 0.5:
+    if atividades_fl.pop(0) == 1:
         atividades.append('7a')
-    else:
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
         atividades.append('7b')
-
-    if atividades_fl[7] < 1 / 3:
-        atividades.append('8a')
-    elif atividades_fl[7] < 2 / 3:
-        atividades.append('8b')
     else:
-        atividades.append('8c')
+        raise Exception
 
-    for i in range(9, 23):
-        if atividades_fl[i] > 0.5:
-            atividades.append(str(i))
+    if atividades_fl.pop(0) == 1:
+        atividades.append('8a')
+        atividades_fl.pop(0)
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
+        atividades.append('8b')
+        atividades_fl.pop(0)
+    elif atividades_fl.pop(0) == 1:
+        atividades.append('8c')
+    else:
+        raise Exception
+
+    next_ativ = 9  # até 23
+    while atividades_fl:
+        if atividades_fl.pop(0) == 1:
+            atividades.append(str(next_ativ))
+        next_ativ += 1
+
+    #
+    # if atividades_fl[0] < 1 / 3:
+    #     atividades.append('1a')
+    # elif atividades_fl[0] < 2 / 3:
+    #     atividades.append('1b')
+    # else:
+    #     atividades.append('1c')
+    # if atividades_fl[1] > 0.5:
+    #     atividades.append('2')
+    # if atividades_fl[2] > 0.5:
+    #     atividades.append('3')
+    #
+    # if atividades_fl[3] < 1 / 3:
+    #     atividades.append('4a')
+    # elif atividades_fl[3] < 2 / 3:
+    #     atividades.append('4b')
+    # else:
+    #     atividades.append('4c')
+    # if atividades_fl[4] > 0.5:
+    #     atividades.append('5')
+    #
+    # if atividades_fl[5] < 1 / 3:
+    #     atividades.append('6a')
+    # elif atividades_fl[5] < 2 / 3:
+    #     atividades.append('6b')
+    # else:
+    #     atividades.append('6c')
+    #
+    # if atividades_fl[6] < 0.5:
+    #     atividades.append('7a')
+    # else:
+    #     atividades.append('7b')
+    #
+    # if atividades_fl[7] < 1 / 3:
+    #     atividades.append('8a')
+    # elif atividades_fl[7] < 2 / 3:
+    #     atividades.append('8b')
+    # else:
+    #     atividades.append('8c')
+    #
+    # for i in range(9, 23):
+    #     if atividades_fl[i] > 0.5:
+    #         atividades.append(str(i))
     return atividades
 
 
@@ -96,6 +241,13 @@ def evaluate_batch(diagnosticos):
     atividades_fl = model.predict(numpy.array(diagnosticos_fl), verbose=0)
     #atividades_fl = model(numpy.array(diagnosticos_fl))
     #atividades_fl = numpy.array(atividades_fl).tolist()
+
+    for x in range(0, len(atividades_fl)):
+        for y in range(0, len(atividades_fl[0])):
+            if atividades_fl[x][y] < 0.5:
+                atividades_fl[x][y] = 0
+            else:
+                atividades_fl[x][y] = 1
 
     all_atividades = []
     for i in atividades_fl:
@@ -123,6 +275,14 @@ def evaluate(diagnostico_str):
 
     return atividades_fl_to_str(atividades_fl)
 
+#
+# def normalization(arr):
+#     for i in arr.shape[0]:
+#         for j in arr.shape[1]:
+#             arr[i][j] = new_col.append(i/max(col))
+#         new_arr.append(new_col)
+#     return new_arr
+
 
 if __name__ == '__main__':
 
@@ -132,11 +292,18 @@ if __name__ == '__main__':
 
     data_preprocessing()
     dataset = genfromtxt(r'CSV/ativs_diag_prepr.csv', encoding='latin-1', delimiter=',')
-    dataset = dataset[..., 2:]  # drop codPaciente, Dia
+    # dataset = dataset[..., 2:]  # drop codPaciente, Dia
 
     data_norm = normalize(dataset, axis=0, norm='max')
+    #data_norm = dataset
+    #tst = normalization(dataset)
+    #
+    # for i in range(0, 10):
+    #     print(dataset[i, :])
+    #     print(data_norm[i, :])
+    #     print('')
     X = data_norm[:, 0]
-    Y = data_norm[:, 1:]
+    Y = data_norm[:, 1:]  # [i, j)
     #
     # for i in X:
     #     if i>1 or i<0:
@@ -150,7 +317,7 @@ if __name__ == '__main__':
     model = Sequential()
     model.add(Dense(150, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
     model.add(Dense(150, activation='tanh'))
-    model.add(Dense(23, activation='softmax'))  # falar disto na discertacao, como desafio encontrado.
+    model.add(Dense(32, activation='sigmoid'))  # falar disto na discertacao, como desafio encontrado.
     # p/ tese: tanh as vezes nao converge (accuracy: 0.0426)
     #   relu, softplus, exponential: causa nan
     # selu = retorna alguns 1's. acc=0.24
@@ -170,29 +337,46 @@ if __name__ == '__main__':
 
     #model.compile(loss='categorical_crossentropy', optimizer='Adagrad', metrics=['accuracy'], loss_weights=list(PontosNAS.values()))
 
-    model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-                  metrics=['TruePositives'], loss_weights=PontosNAS.values())
-
+    model.compile(loss='BinaryCrossentropy', optimizer='adam', metrics=['Precision'], loss_weights=list(PontosNAS.values()))
+    # precision: simply divides true_positives by the sum of true_positives and false_positives
+    # model.compile(loss='BinaryCrossentropy', optimizer='adam', metrics=['BinaryAccuracy'])
+    # https://stackoverflow.com/questions/65361359/why-the-accuracy-and-binary-accuracy-in-keras-have-same-result
     # causa nan: sgd
     # 14%: RMSprop, Adam, Nadam, Adamax. 38%: Adagrad, Ftrl
     # tf.keras.optimizers.Adam(learning_rate=0.1)
     # adadelta, adagrad
-    history = model.fit(X, Y, epochs=10, batch_size=100, validation_split=0.2)
+    history = model.fit(X, Y, epochs=50, batch_size=100, validation_split=0.2)
 
     _, accuracy = model.evaluate(X, Y)
     print('Accuracy: %.2f' % (accuracy * 100))
 
     # predictions = model.predict_classes(X)  # deprecated
-    #predict_y = model.predict(X)
+    predict_y = model.predict(X)
+    classes_y = []
+    for i in predict_y:
+        pass
     #classes_y = numpy.argmax(predict_y, axis=1)
-    #print(Y)
-    #print(predict_y)
+    print(Y)
+    print(predict_y)
+    #print(classes_y)
     aux = model.predict([0, 1/3, 2/3, 3/3])
-    for i in range(0, len(aux)):
-        for j in range(0, len(aux[i])):
-            if aux[i][j] < 0.1:
-                aux[i][j]=0
-    print(aux)
+    aux2 = []
+    for linha in aux:
+        nova_linha = []
+        for item in linha:
+            if item < 0.5:
+                nova_linha.append(0)
+            else:
+                nova_linha.append(1)
+        aux2.append(nova_linha)
+
+
+    # for i in range(0, len(aux)):
+    #     for j in range(0, len(aux[i])):
+    #         if aux[i][j] < 0.1:
+    #             aux[i][j]=0
+    print('predict diagnosticos:')
+    print(aux2)
     #print('1...3', model.predict([1, 2, 3]))
     #model.layers.BatchNormalization(momentum=0.01)
     #predict_y = model(X, training=False)
@@ -223,9 +407,11 @@ if __name__ == '__main__':
     # outra questao: durante a pandemia, eh outro cenario. oq mudou? se treinar com diferentes cenarios, fica melhor
 
     # graficos de acuracia e validacao
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.ylabel('Acurácia')
+    # history.history: loss, binary_accuracy, val_los, val_binary_accuracy
+    # loss, true_positives, val_loss, val_true_positives
+    plt.plot(history.history['precision'])
+    plt.plot(history.history['val_precision'])
+    plt.ylabel('Verdadeiro Positivos')
     plt.xlabel('Época')
     plt.legend(['Treinamento', 'Teste'])
     plt.show()
