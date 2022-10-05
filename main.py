@@ -13,6 +13,7 @@ import csv
 from Enfermeiro import Enfermeiro
 from Paciente import Paciente
 from nn_classification import evaluate_batch as nn_classif_evaluate_batch
+from nn_regression import evaluate_batch as nn_regression_evaluate_batch
 
 
 def escolher_atividades(diagnostico):
@@ -428,7 +429,18 @@ def load_result_nn_classif():
         return pickle.load(f)
 
 
-def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_sim=False, recalcular_nn_classif=False):
+def salvar_result_nn_regression(resultado_nn_regression):
+    with open('resultados/nn_regression.bin', 'wb') as f:
+        pickle.dump(resultado_nn_regression, f)
+
+
+def load_result_nn_regression():
+    with open('resultados/nn_regression.bin', 'rb') as f:
+        return pickle.load(f)
+
+
+def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_sim=False, recalcular_nn_classif=False,
+                        recalcular_nn_regression=False):
     dias = []
     for i in range(0, total_dias):
         dias.append(data_inicio_sim + datetime.timedelta(i))
@@ -476,27 +488,67 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
         salvar_result_nn_classif(resultado_nn_classif)
     else:
         resultado_nn_classif = load_result_nn_classif()
-    # TODO: add opcao de salvar resultados acima
+
+    # resultados da rede neural de regressao
+    if recalcular_nn_regression or recalcular_all:
+        resultado_nn_regression = []
+        for dia in dias:
+            t_parcial = 0.0
+            diagnosticos = [p.get_diagnostico() for p in pacientes]
+            all_atividades = nn_regression_evaluate_batch(diagnosticos)
+            print("nn_evaluate: dia=", dia.date())
+
+            for atividades in all_atividades:  # [duracao, ...]
+                for atividade in atividades:
+                    t_parcial += atividade
+            resultado_nn_regression.append(t_parcial)
+        salvar_result_nn_regression(resultado_nn_regression)
+    else:
+        resultado_nn_regression = load_result_nn_regression()
 
     plt.plot(resultado_teorico)
     plt.plot(resultado_simulado)
     plt.plot(resultado_nn_classif)
+    plt.plot(resultado_nn_regression)
     plt.ylabel('Pontos NAS')
     plt.xlabel('Dia')
-    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado Rede Neural'])
+    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado NN Classificacao', 'Resultado NN Regressao'])
     plt.show()
 
-    teo_vs_pr = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_simulado)]
+    teo_vs_sim = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_simulado)]
     teo_vs_teo = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_teorico)]
-    teo_vs_nn = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn_classif)]
+    teo_vs_nn_cl = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn_classif)]
+    teo_vs_nn_reg = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn_regression)]
     plt.plot(teo_vs_teo)
-    plt.plot(teo_vs_pr)
-    plt.plot(teo_vs_nn)
+    plt.plot(teo_vs_sim)
+    plt.plot(teo_vs_nn_cl)
+    plt.plot(teo_vs_nn_reg)
     plt.ylabel('Porcentagem')
     plt.xlabel('Dia')
-    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado Rede Neural'])
+    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado NN Classificacao', 'Resultado NN Regressao'])
     plt.show()
 
+    # comparando com os resultados simulados
+    diff_teo_sim = [(x-y) for x, y in zip(resultado_teorico, resultado_simulado)]
+    diff_nn_reg_sim = [(x-y) for x, y in zip(resultado_nn_regression, resultado_simulado)]
+    #difference = [x-y for x, y in zip(diff_sim_teo, diff_nn_reg)]
+    plt.plot(diff_teo_sim)
+    plt.plot(diff_nn_reg_sim)
+    #plt.plot(difference)
+    plt.ylabel('Diferenca (pontos NAS)')
+    plt.xlabel('Dia')
+    plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
+    plt.show()
+
+    # em porcentagem comparado com resultado simulado
+    diff_teo_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_teo_sim, resultado_simulado)]
+    diff_nn_reg_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_nn_reg_sim, resultado_simulado)]
+    plt.plot(diff_teo_sim_perc)
+    plt.plot(diff_nn_reg_sim_perc)
+    plt.ylabel('Diferenca %')
+    plt.xlabel('Dia')
+    plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
+    plt.show()
     # aten_teo = []
     # aten_pra = []
     # for atendimento in atendimentos:
@@ -619,6 +671,47 @@ def exportar_atendimentos(atendimentos):
             filewriter.writerow(linha)
 
 
+def exportar_duracao_ativs_por_diag():
+    print("exportar_duracao_ativs_por_diag...")
+    dias = []
+    for i in range(0, total_dias):
+        dias.append(data_inicio_sim + datetime.timedelta(i))
+
+    tabela = []
+    # ['codPaciente', 'Dia', 'Diagnostico', 'Duracao_atividades'])
+    # ['', '', '', '1', '2', '3', ...]
+    for paciente in pacientes:
+        for dia in dias:
+            aux = [paciente.get_codigo(), dia.strftime('%Y-%m-%d'), paciente.get_diagnostico()]
+            aux.extend([0] * 23)
+            tabela.append(aux)
+
+    posCodPac = 0
+    posDia = 1
+    posAtiv = 2
+    for atendimento in atendimentos:
+        for linha in tabela:
+            if linha[posCodPac] == atendimento.get_paciente().get_codigo() and \
+                    linha[posDia] == atendimento.get_dia_inicio_str():
+                if len(atendimento.get_atividade_str()) > 1 and atendimento.get_atividade_str()[1] in 'abc':
+                    linha[posAtiv + int(atendimento.get_atividade_str()[0])] = float(atendimento.get_pontuacao_str())
+                else:
+                    try:
+                        linha[posAtiv + int(atendimento.get_atividade_str())] = float(atendimento.get_pontuacao_str())
+                    except ValueError:
+                        raise Exception("Erro em numero NAS de atendimento")
+
+    with open('CSV/duracao_ativs_diag.csv', 'w', newline='') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        filewriter.writerow(['codPaciente', 'Dia', 'Diagnostico', 'Duracao_atividades'])
+        aux = ['', '', '']
+        for i in range(1, 24):
+            aux.append(str(i))
+        filewriter.writerow(aux)
+        for linha in tabela:
+            filewriter.writerow(linha)
+
+
 if __name__ == '__main__':
 
     nova_simulacao = False
@@ -642,10 +735,11 @@ if __name__ == '__main__':
         atendimentos = load_atendimentos()
         Diagnosticos.add_atividades_faltantes()
 
-    exportar_ativs_por_diag()  # usado pra nn_classification
+    # exportar_ativs_por_diag()  # usado pra nn_classification
+    # exportar_duracao_ativs_por_diag()  # usado pra nn_regression
     # plot_num_ativ_por_diag()
-    ##### exportar_atendimentos(atendimentos)  # usado pra nn_regression
-    # calcular_resultados(recalcular_all=False)
+    ##### exportar_atendimentos(atendimentos)
+    calcular_resultados(recalcular_nn_regression=False)
 
     # exportar_enfermeiros()
     # exportar_pacientes()

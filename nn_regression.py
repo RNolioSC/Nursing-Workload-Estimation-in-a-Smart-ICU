@@ -19,25 +19,23 @@ from pontosNAS import PontosNAS
 def data_preprocessing():
     with open('bin/diagnosticos_list.bin', 'rb') as f:
         diagnosticos = pickle.load(f)
-    with open("CSV/atendimentos.csv") as csvfile:
+    with open("CSV/duracao_ativs_diag.csv") as csvfile:
         reader = csv.reader(csvfile, delimiter=",", quotechar='|')
-        # codPaciente, diagnostico, atividade, pontosNAS
+        # codPaciente, diagnostico, pontosNAS(atividade)
         next(reader, None)  # skip the headers
+        next(reader, None)
         tabela = [row for row in reader]
 
     nova_tabela = []
     for linha in tabela:
         linha.pop(0)  # cod paciente
+        linha.pop(0)  # dia
         nova_linha = [diagnostico_str_to_float(linha.pop(0))]  # normalizado
-        ativ_temp = str(linha.pop(0))
-        for to_remove in 'abc':
-            ativ_temp = ativ_temp.replace(to_remove, '')
-        nova_linha.append(int(ativ_temp))
-        nova_linha.append(float(linha.pop(0)))  # pontosNAS
+        nova_linha.extend(linha)
 
         nova_tabela.append(nova_linha)
 
-    with open('CSV/atendimentos_prepr.csv', 'w', newline='') as csvfile:
+    with open('CSV/duracao_ativs_diag_prepr.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for i in nova_tabela:
             filewriter.writerow(i)
@@ -127,44 +125,44 @@ def atividades_fl_to_str(atividades_fl):
 
 
 def evaluate_batch(diagnosticos):
-    model = keras.models.load_model('modelo_nn')
+    model = keras.models.load_model('modelo_regressao')
     diagnosticos_fl = [diagnostico_str_to_float(d) for d in diagnosticos]
-    atividades_fl = model.predict(numpy.array(diagnosticos_fl), verbose=0)
+    duracao_ativs = model.predict(numpy.array(diagnosticos_fl), verbose=0)
     # atividades_fl = model(numpy.array(diagnosticos_fl))
     # atividades_fl = numpy.array(atividades_fl).tolist()
 
-    for x in range(0, len(atividades_fl)):
-        for y in range(0, len(atividades_fl[0])):
-            if atividades_fl[x][y] < 0.5:
-                atividades_fl[x][y] = 0
-            else:
-                atividades_fl[x][y] = 1
+    # for x in range(0, len(atividades_fl)):
+    #     for y in range(0, len(atividades_fl[0])):
+    #         if atividades_fl[x][y] < 0.5:
+    #             atividades_fl[x][y] = 0
+    #         else:
+    #             atividades_fl[x][y] = 1
+    #
+    # all_atividades = []
+    # for i in atividades_fl:
+    #     all_atividades.append(atividades_fl_to_str(i))
+    return duracao_ativs
 
-    all_atividades = []
-    for i in atividades_fl:
-        all_atividades.append(atividades_fl_to_str(i))
-    return all_atividades
-
-
-def evaluate(diagnostico_str):
-    model = keras.models.load_model('modelo_nn')
-    # um dado por vez:
-    diagnostico_fl = diagnostico_str_to_float(diagnostico_str)
-    atividades_fl = model(numpy.array([diagnostico_fl]))
-    atividades_fl = numpy.array(atividades_fl).tolist()[0]
-
-    # multiplos dados por vez: melhor performance
-
-    # atividades_fl = model.predict([diagnostico_fl], batch_size=1, verbose=0).tolist()[0]
-    # atividades_fl = model([diagnostico_fl], training=False).tolist()[0]
-    # atividades_fl = model.predict_on_batch([diagnostico_fl]).tolist()[0]
-    # atividades_fl = model([diagnostico_fl]).tolist()[0]
-    # atividades_fl = model(tf.expand_dims([diagnostico_fl], axis=1).shape)
-    #atividades_fl = model([[diagnostico_fl]])
-
-    #atividades = atividades_fl_to_str(atividades_fl)
-
-    return atividades_fl_to_str(atividades_fl)
+#
+# def evaluate(diagnostico_str):
+#     model = keras.models.load_model('modelo_nn')
+#     # um dado por vez:
+#     diagnostico_fl = diagnostico_str_to_float(diagnostico_str)
+#     atividades_fl = model(numpy.array([diagnostico_fl]))
+#     atividades_fl = numpy.array(atividades_fl).tolist()[0]
+#
+#     # multiplos dados por vez: melhor performance
+#
+#     # atividades_fl = model.predict([diagnostico_fl], batch_size=1, verbose=0).tolist()[0]
+#     # atividades_fl = model([diagnostico_fl], training=False).tolist()[0]
+#     # atividades_fl = model.predict_on_batch([diagnostico_fl]).tolist()[0]
+#     # atividades_fl = model([diagnostico_fl]).tolist()[0]
+#     # atividades_fl = model(tf.expand_dims([diagnostico_fl], axis=1).shape)
+#     #atividades_fl = model([[diagnostico_fl]])
+#
+#     #atividades = atividades_fl_to_str(atividades_fl)
+#
+#     return atividades_fl_to_str(atividades_fl)
 
 
 if __name__ == '__main__':
@@ -174,19 +172,19 @@ if __name__ == '__main__':
     tempoi = time.time()
 
     data_preprocessing()
-    dataset = genfromtxt(r'CSV/atendimentos_prepr.csv', encoding='latin-1', delimiter=',')
+    dataset = genfromtxt(r'CSV/duracao_ativs_diag_prepr.csv', encoding='latin-1', delimiter=',')
 
     # data_norm = normalize(dataset, axis=0, norm='max')
     data_norm = dataset
 
-    X = data_norm[:, :2]  # [[diagnostico, atividade]...],
-    Y = data_norm[:, 2]  # [i, j) [duracao]
+    X = data_norm[:, 0]  # diagnostico
+    Y = data_norm[:, 1:]  # [i, j) [duracao por atividade]
 
     # quantidade de camadas e neuronios, pesquisar se tem como o otimizador fazer isso.
     model = Sequential()
-    model.add(Dense(150, input_dim=2, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
+    model.add(Dense(150, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
     model.add(Dense(150, activation='tanh'))
-    model.add(Dense(1))  # falar disto na discertacao, como desafio encontrado.
+    model.add(Dense(23))  # falar disto na discertacao, como desafio encontrado.
     # p/ tese: tanh as vezes nao converge (accuracy: 0.0426)
     #   relu, softplus, exponential: causa nan
     # selu = retorna alguns 1's. acc=0.24
@@ -214,7 +212,7 @@ if __name__ == '__main__':
     # 14%: RMSprop, Adam, Nadam, Adamax. 38%: Adagrad, Ftrl
     # tf.keras.optimizers.Adam(learning_rate=0.1)
     # adadelta, adagrad
-    history = model.fit(X, Y, epochs=20, batch_size=100, validation_split=0.2)
+    history = model.fit(X, Y, epochs=50, batch_size=100, validation_split=0.2)
     # print(history) # 'loss', 'val_loss'
 
     model.evaluate(X, Y)
@@ -229,32 +227,8 @@ if __name__ == '__main__':
     #print(predict_y)
     #print(classes_y)
     print('predict diagnosticos:')
-    print('desconhecido:')
-    teste = []
-    for i in range(1, 24):
-        teste.append([0.0, i])
-    print(model.predict(teste))
-
-    print('covid:')
-    teste = []
-    for i in range(1, 24):
-        teste.append([1/3, i])
-    print(model.predict(teste))
-    teste = []
-
-    print('queimado:')
-    for i in range(1, 24):
-        teste.append([2/3, i])
-    print(model.predict(teste))
-    teste = []
-
-    print('trauma:')
-    for i in range(1, 24):
-        teste.append([1, i])
-    print(model.predict(teste))
-
-    #aux = model.predict([0, 1/3, 2/3, 3/3])
-
+    aux = model.predict([0, 1/3, 2/3, 3/3])
+    print(aux)
 
     #
     # oldi = Y[0]
@@ -285,7 +259,7 @@ if __name__ == '__main__':
     # graficos de acuracia e validacao
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
-    plt.ylabel('Perda')
+    plt.ylabel('Erro quadrático médio')
     plt.xlabel('Época')
     plt.legend(['Treinamento', 'Teste'])
     plt.show()

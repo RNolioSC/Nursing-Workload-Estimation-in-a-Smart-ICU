@@ -24,6 +24,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\CSV\duracao_ativs_diag.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
