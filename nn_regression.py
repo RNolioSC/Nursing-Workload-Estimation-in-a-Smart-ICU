@@ -17,9 +17,9 @@ from pontosNAS import PontosNAS
 
 
 def data_preprocessing():
-    with open('bin/diagnosticos_list.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/diagnosticos_list.bin', 'rb') as f:
         diagnosticos = pickle.load(f)
-    with open("CSV/duracao_ativs_diag.csv") as csvfile:
+    with open(simulacao_path + '/CSV/duracao_ativs_diag.csv') as csvfile:
         reader = csv.reader(csvfile, delimiter=",", quotechar='|')
         # codPaciente, diagnostico, pontosNAS(atividade)
         next(reader, None)  # skip the headers
@@ -30,19 +30,19 @@ def data_preprocessing():
     for linha in tabela:
         linha.pop(0)  # cod paciente
         linha.pop(0)  # dia
-        nova_linha = [diagnostico_str_to_float(linha.pop(0))]  # normalizado
+        nova_linha = [diagnostico_str_to_float(linha.pop(0), simulacao_path)]  # normalizado
         nova_linha.extend(linha)
 
         nova_tabela.append(nova_linha)
 
-    with open('CSV/duracao_ativs_diag_prepr.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/duracao_ativs_diag_prepr.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for i in nova_tabela:
             filewriter.writerow(i)
 
 
-def diagnostico_str_to_float(diag):
-    with open('bin/diagnosticos_list.bin', 'rb') as f:
+def diagnostico_str_to_float(diag, simulacao_path):
+    with open(simulacao_path + '/bin/diagnosticos_list.bin', 'rb') as f:
         diagnosticos = pickle.load(f)
     return diagnosticos.index(diag) / (len(diagnosticos)-1)
 
@@ -124,45 +124,14 @@ def atividades_fl_to_str(atividades_fl):
     return atividades
 
 
-def evaluate_batch(diagnosticos):
+def evaluate_batch(diagnosticos, simulacao_path):
     model = keras.models.load_model('modelo_regressao')
-    diagnosticos_fl = [diagnostico_str_to_float(d) for d in diagnosticos]
+    diagnosticos_fl = [diagnostico_str_to_float(d, simulacao_path) for d in diagnosticos]
     duracao_ativs = model.predict(numpy.array(diagnosticos_fl), verbose=0)
     # atividades_fl = model(numpy.array(diagnosticos_fl))
     # atividades_fl = numpy.array(atividades_fl).tolist()
 
-    # for x in range(0, len(atividades_fl)):
-    #     for y in range(0, len(atividades_fl[0])):
-    #         if atividades_fl[x][y] < 0.5:
-    #             atividades_fl[x][y] = 0
-    #         else:
-    #             atividades_fl[x][y] = 1
-    #
-    # all_atividades = []
-    # for i in atividades_fl:
-    #     all_atividades.append(atividades_fl_to_str(i))
     return duracao_ativs
-
-#
-# def evaluate(diagnostico_str):
-#     model = keras.models.load_model('modelo_nn')
-#     # um dado por vez:
-#     diagnostico_fl = diagnostico_str_to_float(diagnostico_str)
-#     atividades_fl = model(numpy.array([diagnostico_fl]))
-#     atividades_fl = numpy.array(atividades_fl).tolist()[0]
-#
-#     # multiplos dados por vez: melhor performance
-#
-#     # atividades_fl = model.predict([diagnostico_fl], batch_size=1, verbose=0).tolist()[0]
-#     # atividades_fl = model([diagnostico_fl], training=False).tolist()[0]
-#     # atividades_fl = model.predict_on_batch([diagnostico_fl]).tolist()[0]
-#     # atividades_fl = model([diagnostico_fl]).tolist()[0]
-#     # atividades_fl = model(tf.expand_dims([diagnostico_fl], axis=1).shape)
-#     #atividades_fl = model([[diagnostico_fl]])
-#
-#     #atividades = atividades_fl_to_str(atividades_fl)
-#
-#     return atividades_fl_to_str(atividades_fl)
 
 
 if __name__ == '__main__':
@@ -171,8 +140,11 @@ if __name__ == '__main__':
 
     tempoi = time.time()
 
+    # path pros dados a serem usados para o treinamento
+    simulacao_path = 'simulacoes/simulacao1'
+
     data_preprocessing()
-    dataset = genfromtxt(r'CSV/duracao_ativs_diag_prepr.csv', encoding='latin-1', delimiter=',')
+    dataset = genfromtxt(r'simulacoes/simulacao1/CSV/duracao_ativs_diag_prepr.csv', encoding='latin-1', delimiter=',')
 
     # data_norm = normalize(dataset, axis=0, norm='max')
     data_norm = dataset
@@ -180,38 +152,12 @@ if __name__ == '__main__':
     X = data_norm[:, 0]  # diagnostico
     Y = data_norm[:, 1:]  # [i, j) [duracao por atividade]
 
-    # quantidade de camadas e neuronios, pesquisar se tem como o otimizador fazer isso.
     model = Sequential()
     model.add(Dense(150, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
     model.add(Dense(150, activation='tanh'))
     model.add(Dense(23))  # falar disto na discertacao, como desafio encontrado.
-    # p/ tese: tanh as vezes nao converge (accuracy: 0.0426)
-    #   relu, softplus, exponential: causa nan
-    # selu = retorna alguns 1's. acc=0.24
-    # relu eh boa quando tem muitos outliers
-    # quantidade de dados pra simulacao: 10k dataset
-    # fazer testes com varias funcoes de ativacao com o mesmo dataset
-    # classes balanceadas: raro no mundo real.
-    # uma ideia eh usar uma serie temporal, por turno. tem redes neurais projetadas para isto
-    # mais importante: divisao treino / teste, crossvalidation com diferente distribuicao, aumentar tamanho simulacao,
-    # # parte experimental, testar com novas  distribuicoes, balanceamento (dificil), series temporais
-    # cross-validation nao muda mto se nao usar distribuicao diferente.
-    # tcc de series temporarias: https://repositorio.ufsc.br/handle/123456789/223843
-    # ciencia de dados: fica bom fazer analise descritiva de dados: media, mediana, quartis, formato dos dados:
-    # por diagnostico. eh um diagrama de duracao por diagnostico: X=atividades nas, Y= duracao.
-    # deixar claro que a escolha de atividades que a nn faz eh somente para a estimativa de num de enfermeiros, e nao
-    # para decidir atividades a serem executadas para pacientes especificos
-
-    # model.compile(loss='categorical_crossentropy', optimizer='Adagrad', metrics=['accuracy'], loss_weights=list(PontosNAS.values()))
 
     model.compile(loss='mean_squared_error', optimizer='adam')
-    # precision: simply divides true_positives by the sum of true_positives and false_positives
-    # model.compile(loss='BinaryCrossentropy', optimizer='adam', metrics=['BinaryAccuracy'])
-    # https://stackoverflow.com/questions/65361359/why-the-accuracy-and-binary-accuracy-in-keras-have-same-result
-    # causa nan: sgd
-    # 14%: RMSprop, Adam, Nadam, Adamax. 38%: Adagrad, Ftrl
-    # tf.keras.optimizers.Adam(learning_rate=0.1)
-    # adadelta, adagrad
     history = model.fit(X, Y, epochs=50, batch_size=100, validation_split=0.2)
     # print(history) # 'loss', 'val_loss'
 
@@ -219,42 +165,18 @@ if __name__ == '__main__':
 
     # predictions = model.predict_classes(X)  # deprecated
     predict_y = model.predict(X)
-    # classes_y = []
-    # for i in predict_y:
-    #     pass
-    #classes_y = numpy.argmax(predict_y, axis=1)
-    #print(Y)
-    #print(predict_y)
-    #print(classes_y)
+    # classes_y = numpy.argmax(predict_y, axis=1)
+    # print(Y)
+    # print(predict_y)
+    # print(classes_y)
     print('predict diagnosticos:')
     aux = model.predict([0, 1/3, 2/3, 3/3])
     print(aux)
-
-    #
-    # oldi = Y[0]
-    # count = 0
-    # for i in range(0, len(Y)):
-    #     if Y[i][0] != oldi[0]:
-    #         print('yy', Y[i])
-    #         print('predicted', numpy.array(predict_y[i]).tolist())
-    #         oldi = Y[i]
-    #         count = count + 1
-    #     if count > 20:
-    #         break
-    # plt.scatter(Y, [a for a in Y], '.')
-    # plt.scatter(predict_y, [a for a in Y], 'o')
-    # plt.legend('Yy', 'predicted')
-    # plt.show()
 
     tempof = time.time()
     print("tempo de execucao (s):", tempof - tempoi)
 
     model.save('modelo_regressao')
-    # TODO: fazer treinamento com uma simulacao e validacao com outra simulacao, eh bem importante. cross dataset
-    #  validation
-    # conlcusoes: limitacao: independente da distribuicao, a rede vai aprender com aquela distribuicao ( normal). se
-    # tiver uma simulacao com uma distribuicao pra treinamento, mas outra distribuicao pra testes. trabalhos futuros.
-    # outra questao: durante a pandemia, eh outro cenario. oq mudou? se treinar com diferentes cenarios, fica melhor
 
     # graficos de acuracia e validacao
     plt.plot(history.history['loss'])
@@ -263,19 +185,3 @@ if __name__ == '__main__':
     plt.xlabel('Época')
     plt.legend(['Treinamento', 'Teste'])
     plt.show()
-
-    # print("False positives: ", keras.metrics.FalsePositives(thresholds=None, name=None, dtype=None).result().numpy())
-    #matrix = confusion_matrix(Y, predict_y)
-    #print(matrix)
-
-    #plt.matshow(tf.math.confusion_matrix(Y[0], predict_y[0]))
-    #plt.show()
-    # fp = matrix[1, 0]
-    #
-    # print('False positives =', (fp/numpy.size(X))*100, '%')
-    # print('x[0].s=', numpy.size(X[0]))
-
-    # loss: 124.5392 - accuracy: 0.7756 - elu
-    # loss: 16.7161 - accuracy: 0.7756 - tanh
-
-    # ?: fix duracao com enfermeiro & tecnico

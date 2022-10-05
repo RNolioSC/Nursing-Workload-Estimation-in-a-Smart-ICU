@@ -1,5 +1,4 @@
 import pickle
-import numpy as np
 
 from matplotlib import pyplot as plt
 import Diagnosticos
@@ -80,7 +79,7 @@ def simular_nas(sigma, atividades):
 
 def exportar_antendimentos(atendimentos):
     print("exportar_antendimentos...")
-    with open('CSV/atendimentos.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/atendimentos.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Paciente', 'Diagnostico', 'Dia Inicio', 'Horario Inicio', 'Dia Fim', 'Horario Fim',
@@ -110,7 +109,7 @@ def exportar_antendimentos(atendimentos):
 
 def exportar_antendimentos_nn(atendimentos):
     print("exportar_antendimentos_nn...")
-    with open('CSV/atendimentos_nn.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/atendimentos_nn.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Diagnostico', 'codPaciente', 'Duracao', 'Atividade', 'Pontuacao',
@@ -284,7 +283,7 @@ def simular_atendimentos():
 
 def exportar_enfermeiros():
     print("exportar_enfermeiros...")
-    with open('CSV/enfermeiros.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/enfermeiros.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Codigo RFID', 'Nome', 'Tipo'])
@@ -321,7 +320,7 @@ def minutos_to_pontos(minutos):
 
 def exportar_horas_trabalhadas():
     print("exportar_horas_trabalhadas...")
-    with open('CSV/horas_trabalhadas.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/horas_trabalhadas.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Codigo', 'Tipo', 'Dia', 'Horas Trabalhadas'])
@@ -344,7 +343,7 @@ def exportar_horas_trabalhadas():
 
 def exportar_pacientes():
     print("exportar_pacientes...")
-    with open('CSV/pacientes.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/pacientes.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         filewriter.writerow(['Codigo', 'Nome', 'Diagnostico'])
@@ -388,7 +387,7 @@ def exportar_ativs_por_diag():
                     except ValueError:
                         raise Exception("Erro em numero NAS de atendimento")
 
-    with open('CSV/ativs_diag.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/ativs_diag.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         filewriter.writerow(['codPaciente', 'Dia', 'Diagnostico', 'Atividades'])
         aux = ['', '', '']
@@ -478,8 +477,8 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
         for dia in dias:
             t_parcial = 0.0
             diagnosticos = [p.get_diagnostico() for p in pacientes]
-            all_atividades = nn_classif_evaluate_batch(diagnosticos)
-            print("nn_evaluate: dia=", dia.date())
+            all_atividades = nn_classif_evaluate_batch(diagnosticos, simulacao_path)
+            print("nn_classif_evaluate: dia=", dia.date())
 
             for atividades in all_atividades:  # [1a,2,3,...]
                 for atividade in atividades:
@@ -495,8 +494,8 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
         for dia in dias:
             t_parcial = 0.0
             diagnosticos = [p.get_diagnostico() for p in pacientes]
-            all_atividades = nn_regression_evaluate_batch(diagnosticos)
-            print("nn_evaluate: dia=", dia.date())
+            all_atividades = nn_regression_evaluate_batch(diagnosticos, simulacao_path)
+            print("nn_regress_evaluate: dia=", dia.date())
 
             for atividades in all_atividades:  # [duracao, ...]
                 for atividade in atividades:
@@ -563,56 +562,56 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
 
 
 def salvar_simulacao():
-    with open('bin/pacientes.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/pacientes.bin', 'wb') as f:
         pickle.dump(pacientes, f)
-    with open('bin/data_inicio_sim.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/data_inicio_sim.bin', 'wb') as f:
         pickle.dump(data_inicio_sim, f)
-    with open('bin/total_dias.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/total_dias.bin', 'wb') as f:
         pickle.dump(total_dias, f)
-    with open('bin/enfermeiros.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/enfermeiros.bin', 'wb') as f:
         pickle.dump(enfermeiros, f)
-    with open('bin/tecnicos.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/tecnicos.bin', 'wb') as f:
         pickle.dump(tecnicos, f)
-    with open('bin/horas_turno.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/horas_turno.bin', 'wb') as f:
         pickle.dump(horas_turno, f)
-    with open('bin/atendimentos.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/atendimentos.bin', 'wb') as f:
         pickle.dump(atendimentos, f)
-    with open('bin/diagnosticos_list.bin', 'wb') as f:
+    with open(simulacao_path + '/bin/diagnosticos_list.bin', 'wb') as f:
         pickle.dump(list(Diagnosticos.Index.keys()), f)
 
 
 def load_pacientes():
-    with open('bin/pacientes.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/pacientes.bin', 'rb') as f:
         return pickle.load(f)
 
 
 def load_data_inicio_sim():
-    with open('bin/data_inicio_sim.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/data_inicio_sim.bin', 'rb') as f:
         return pickle.load(f)
 
 
 def load_total_dias():
-    with open('bin/total_dias.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/total_dias.bin', 'rb') as f:
         return pickle.load(f)
 
 
 def load_enfermeiros():
-    with open('bin/enfermeiros.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/enfermeiros.bin', 'rb') as f:
         return pickle.load(f)
 
 
 def load_tecnicos():
-    with open('bin/tecnicos.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/tecnicos.bin', 'rb') as f:
         return pickle.load(f)
 
 
 def load_horas_turno():
-    with open('bin/horas_turno.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/horas_turno.bin', 'rb') as f:
         return pickle.load(f)
 
 
 def load_atendimentos():
-    with open('bin/atendimentos.bin', 'rb') as f:
+    with open(simulacao_path + '/bin/atendimentos.bin', 'rb') as f:
         return pickle.load(f)
 
 
@@ -665,7 +664,7 @@ def exportar_atendimentos(atendimentos):
                atendimento.get_atividade_str(), atendimento.get_pontuacao_str()]
         to_export.append(aux)
 
-    with open('CSV/atendimentos.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/atendimentos.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for linha in to_export:
             filewriter.writerow(linha)
@@ -701,7 +700,7 @@ def exportar_duracao_ativs_por_diag():
                     except ValueError:
                         raise Exception("Erro em numero NAS de atendimento")
 
-    with open('CSV/duracao_ativs_diag.csv', 'w', newline='') as csvfile:
+    with open(simulacao_path + '/CSV/duracao_ativs_diag.csv', 'w', newline='') as csvfile:
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         filewriter.writerow(['codPaciente', 'Dia', 'Diagnostico', 'Duracao_atividades'])
         aux = ['', '', '']
@@ -715,6 +714,7 @@ def exportar_duracao_ativs_por_diag():
 if __name__ == '__main__':
 
     nova_simulacao = False
+    simulacao_path = 'simulacoes/simulacao2'
     if nova_simulacao:
         pacientes = simular_pacientes(50)
         data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
@@ -738,8 +738,7 @@ if __name__ == '__main__':
     # exportar_ativs_por_diag()  # usado pra nn_classification
     # exportar_duracao_ativs_por_diag()  # usado pra nn_regression
     # plot_num_ativ_por_diag()
-    ##### exportar_atendimentos(atendimentos)
-    calcular_resultados(recalcular_nn_regression=False)
+    calcular_resultados(recalcular_all=False)
 
     # exportar_enfermeiros()
     # exportar_pacientes()
