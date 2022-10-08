@@ -213,27 +213,6 @@ def evaluate_batch(diagnosticos, simulacao_path):
     return all_atividades
 
 
-def evaluate(diagnostico_str):
-    model = keras.models.load_model('modelo_classificacao')
-    # um dado por vez:
-    diagnostico_fl = diagnostico_str_to_float(diagnostico_str)
-    atividades_fl = model(numpy.array([diagnostico_fl]))
-    atividades_fl = numpy.array(atividades_fl).tolist()[0]
-
-    # multiplos dados por vez: melhor performance
-
-    # atividades_fl = model.predict([diagnostico_fl], batch_size=1, verbose=0).tolist()[0]
-    # atividades_fl = model([diagnostico_fl], training=False).tolist()[0]
-    # atividades_fl = model.predict_on_batch([diagnostico_fl]).tolist()[0]
-    # atividades_fl = model([diagnostico_fl]).tolist()[0]
-    # atividades_fl = model(tf.expand_dims([diagnostico_fl], axis=1).shape)
-    #atividades_fl = model([[diagnostico_fl]])
-
-    #atividades = atividades_fl_to_str(atividades_fl)
-
-    return atividades_fl_to_str(atividades_fl)
-
-
 if __name__ == '__main__':
 
     treinar = False

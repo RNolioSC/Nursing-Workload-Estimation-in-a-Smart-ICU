@@ -1,5 +1,4 @@
 import pickle
-
 from matplotlib import pyplot as plt
 import Diagnosticos
 from pontosNAS import PontosNAS
@@ -68,11 +67,16 @@ def escolher_atividades_alto_risco():
     return atividades
 
 
-def simular_nas(sigma, atividades):
+def simular_nas(atividades, distribuicao='normal'):
 
     resultados = {}
     for j in atividades:
-        aux = abs(stats.norm.rvs(PontosNAS[j], sigma))
+        if distribuicao == 'normal':
+            variancia = 1
+            sigma = math.sqrt(variancia)
+            aux = abs(stats.norm.rvs(PontosNAS[j], sigma))
+        else:
+            raise Exception('Distribuicao estatistica invalida')
         resultados[j] = aux
     return resultados
 
@@ -191,8 +195,7 @@ def simular_tecnicos(quantidade):
 
 
 def simular_atendimentos():
-    variancia = 1
-    sigma = math.sqrt(variancia)
+
 
     dias = []
     for i in range(0, total_dias):
@@ -204,7 +207,7 @@ def simular_atendimentos():
 
         for dia in dias:
             atividades = escolher_atividades(paciente.get_diagnostico())
-            lista_nas = simular_nas(sigma, atividades)
+            lista_nas = simular_nas(atividades)
 
             enfermeiros_disponiveis = []
             for enfermeiro_aux in enfermeiros:
@@ -711,6 +714,44 @@ def exportar_duracao_ativs_por_diag():
             filewriter.writerow(linha)
 
 
+def plot_distribuicao():
+    dados = []
+    for atendimento in atendimentos:
+        if atendimento.get_atividade_str() == '2':
+            dados.append(float(atendimento.get_pontuacao_str()))
+    dados = sorted(dados)
+    classes = 30
+    step = (max(dados) - min(dados))/classes
+    divider = min(dados) + step
+    counter = 0
+    dados_count = []
+    scale = [divider]
+    for dado in dados:
+        if dado <= divider:
+            counter += 1
+        else:  # dado > dados
+            dados_count.append(counter)
+            counter = 1
+            scale.append(divider)
+            divider += step
+    scale.pop(0)
+    plt.plot(scale, dados_count)
+    media = PontosNAS['2']
+
+    count = 0
+    for dado in dados:
+        if media - 1 <= dado <= media + 1:
+            count += 1
+    print('porcentagem entre media + 1dp e -1 dp =', (count/len(dados))*100)
+
+    plt.ylabel('Numero de atendimentos')
+    plt.xlabel('Duracao (pontos NAS)')
+    plt.title('Atividade 2: 4.3 pontos ~ 62 min')
+    plt.vlines([media-1, media+1], 0, max(dados_count), colors='k')
+    plt.vlines(media, 0, max(dados_count), colors='r')
+    plt.show()
+
+
 if __name__ == '__main__':
 
     nova_simulacao = False
@@ -738,7 +779,8 @@ if __name__ == '__main__':
     # exportar_ativs_por_diag()  # usado pra nn_classification
     # exportar_duracao_ativs_por_diag()  # usado pra nn_regression
     # plot_num_ativ_por_diag()
-    calcular_resultados(recalcular_all=False)
+    plot_distribuicao()
+    # calcular_resultados(recalcular_all=False)
 
     # exportar_enfermeiros()
     # exportar_pacientes()
