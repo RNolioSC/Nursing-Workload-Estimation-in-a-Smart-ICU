@@ -12,6 +12,8 @@ from Enfermeiro import Enfermeiro
 from Paciente import Paciente
 from nn_classification import evaluate_batch as nn_classif_evaluate_batch
 from nn_regression import evaluate_batch as nn_regression_evaluate_batch
+import numpy as np
+from sklearn.metrics import mean_squared_error
 
 
 def escolher_atividades(diagnostico):
@@ -67,14 +69,21 @@ def escolher_atividades_alto_risco():
     return atividades
 
 
-def simular_nas(atividades, distribuicao='normal'):
+def simular_nas(atividades, distribuicao='norm', variancia=1, lambd=1, scale=1, degr_freed=3):
 
     resultados = {}
     for j in atividades:
-        if distribuicao == 'normal':
-            variancia = 1
+        if distribuicao == 'norm':
+            media = PontosNAS[j]
             sigma = math.sqrt(variancia)
-            aux = abs(stats.norm.rvs(PontosNAS[j], sigma))
+            aux = abs(stats.norm.rvs(media, sigma))
+        elif distribuicao == 'exp':
+            location = PontosNAS[j]
+            scale = 1 / lambd
+            aux = abs(stats.expon.rvs(loc=location, scale=scale))
+        elif distribuicao == 't':
+            location = PontosNAS[j]
+            aux = abs(stats.t.rvs(df=degr_freed, loc=location, scale=scale))
         else:
             raise Exception('Distribuicao estatistica invalida')
         resultados[j] = aux
@@ -194,8 +203,7 @@ def simular_tecnicos(quantidade):
     return tecnicos
 
 
-def simular_atendimentos():
-
+def simular_atendimentos(distribuicao):
 
     dias = []
     for i in range(0, total_dias):
@@ -207,7 +215,7 @@ def simular_atendimentos():
 
         for dia in dias:
             atividades = escolher_atividades(paciente.get_diagnostico())
-            lista_nas = simular_nas(atividades)
+            lista_nas = simular_nas(atividades, distribuicao)
 
             enfermeiros_disponiveis = []
             for enfermeiro_aux in enfermeiros:
@@ -514,7 +522,7 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
     plt.plot(resultado_nn_regression)
     plt.ylabel('Pontos NAS')
     plt.xlabel('Dia')
-    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado NN Classificacao', 'Resultado NN Regressao'])
+    plt.legend(['Resultado Teórico', 'Resultado Simulado', 'Resultado RN Classificação', 'Resultado RN Regressão'])
     plt.show()
 
     teo_vs_sim = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_simulado)]
@@ -527,40 +535,27 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
     plt.plot(teo_vs_nn_reg)
     plt.ylabel('Porcentagem')
     plt.xlabel('Dia')
-    plt.legend(['Resultado Teorico', 'Resultado Simulado', 'Resultado NN Classificacao', 'Resultado NN Regressao'])
+    plt.legend(['Resultado Teórico', 'Resultado Simulado', 'Resultado RN Classificação', 'Resultado RN Regressão'])
     plt.show()
 
     # comparando com os resultados simulados
-    diff_teo_sim = [(x-y) for x, y in zip(resultado_teorico, resultado_simulado)]
-    diff_nn_reg_sim = [(x-y) for x, y in zip(resultado_nn_regression, resultado_simulado)]
-    #difference = [x-y for x, y in zip(diff_sim_teo, diff_nn_reg)]
-    plt.plot(diff_teo_sim)
-    plt.plot(diff_nn_reg_sim)
-    #plt.plot(difference)
-    plt.ylabel('Diferenca (pontos NAS)')
-    plt.xlabel('Dia')
-    plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
-    plt.show()
-
-    # em porcentagem comparado com resultado simulado
-    diff_teo_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_teo_sim, resultado_simulado)]
-    diff_nn_reg_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_nn_reg_sim, resultado_simulado)]
-    plt.plot(diff_teo_sim_perc)
-    plt.plot(diff_nn_reg_sim_perc)
-    plt.ylabel('Diferenca %')
-    plt.xlabel('Dia')
-    plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
-    plt.show()
-    # aten_teo = []
-    # aten_pra = []
-    # for atendimento in atendimentos:
-    #     aten_pra.append(float(atendimento.get_pontuacao_str()))
-    #     aten_teo.append(PontosNAS[atendimento.get_atividade_str()])
-    # plt.plot(aten_teo[0:100])
-    # plt.plot(aten_pra[0:100])
-    # plt.ylabel('Pontos NAS')
-    # plt.xlabel('Atendimento')
-    # plt.legend(['Resultado Teorico', 'Resultado Prático'])
+    # diff_teo_sim = [(x-y) for x, y in zip(resultado_teorico, resultado_simulado)]
+    # diff_nn_reg_sim = [(x-y) for x, y in zip(resultado_nn_regression, resultado_simulado)]
+    # plt.plot(diff_teo_sim)
+    # plt.plot(diff_nn_reg_sim)
+    # plt.ylabel('Diferenca (pontos NAS)')
+    # plt.xlabel('Dia')
+    # plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
+    # plt.show()
+    #
+    # # em porcentagem comparado com resultado simulado
+    # diff_teo_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_teo_sim, resultado_simulado)]
+    # diff_nn_reg_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_nn_reg_sim, resultado_simulado)]
+    # plt.plot(diff_teo_sim_perc)
+    # plt.plot(diff_nn_reg_sim_perc)
+    # plt.ylabel('Diferenca %')
+    # plt.xlabel('Dia')
+    # plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
     # plt.show()
 
 
@@ -583,38 +578,38 @@ def salvar_simulacao():
         pickle.dump(list(Diagnosticos.Index.keys()), f)
 
 
-def load_pacientes():
-    with open(simulacao_path + '/bin/pacientes.bin', 'rb') as f:
+def load_pacientes(path):
+    with open(path + '/bin/pacientes.bin', 'rb') as f:
         return pickle.load(f)
 
 
-def load_data_inicio_sim():
-    with open(simulacao_path + '/bin/data_inicio_sim.bin', 'rb') as f:
+def load_data_inicio_sim(path):
+    with open(path + '/bin/data_inicio_sim.bin', 'rb') as f:
         return pickle.load(f)
 
 
-def load_total_dias():
-    with open(simulacao_path + '/bin/total_dias.bin', 'rb') as f:
+def load_total_dias(path):
+    with open(path + '/bin/total_dias.bin', 'rb') as f:
         return pickle.load(f)
 
 
-def load_enfermeiros():
-    with open(simulacao_path + '/bin/enfermeiros.bin', 'rb') as f:
+def load_enfermeiros(path):
+    with open(path + '/bin/enfermeiros.bin', 'rb') as f:
         return pickle.load(f)
 
 
-def load_tecnicos():
-    with open(simulacao_path + '/bin/tecnicos.bin', 'rb') as f:
+def load_tecnicos(path):
+    with open(path + '/bin/tecnicos.bin', 'rb') as f:
         return pickle.load(f)
 
 
-def load_horas_turno():
-    with open(simulacao_path + '/bin/horas_turno.bin', 'rb') as f:
+def load_horas_turno(path):
+    with open(path + '/bin/horas_turno.bin', 'rb') as f:
         return pickle.load(f)
 
 
-def load_atendimentos():
-    with open(simulacao_path + '/bin/atendimentos.bin', 'rb') as f:
+def load_atendimentos(path):
+    with open(path + '/bin/atendimentos.bin', 'rb') as f:
         return pickle.load(f)
 
 
@@ -714,14 +709,15 @@ def exportar_duracao_ativs_por_diag():
             filewriter.writerow(linha)
 
 
-def plot_distribuicao():
+def count_per_class(atendimentos):
     dados = []
     for atendimento in atendimentos:
         if atendimento.get_atividade_str() == '2':
             dados.append(float(atendimento.get_pontuacao_str()))
+
     dados = sorted(dados)
-    classes = 30
-    step = (max(dados) - min(dados))/classes
+    classes = 75
+    step = (max(dados) - min(dados)) / classes
     divider = min(dados) + step
     counter = 0
     dados_count = []
@@ -730,11 +726,19 @@ def plot_distribuicao():
         if dado <= divider:
             counter += 1
         else:  # dado > dados
-            dados_count.append(counter)
+            counter = counter/len(dados)
+            dados_count.append(counter*100)
             counter = 1
             scale.append(divider)
             divider += step
     scale.pop(0)
+    return scale, dados_count, dados
+
+
+def plot_distribuicao_dados(simulacao_path, path_outra_sim=None):
+
+    scale, dados_count, dados = count_per_class(atendimentos)
+
     plt.plot(scale, dados_count)
     media = PontosNAS['2']
 
@@ -744,43 +748,72 @@ def plot_distribuicao():
             count += 1
     print('porcentagem entre media + 1dp e -1 dp =', (count/len(dados))*100)
 
-    plt.ylabel('Numero de atendimentos')
+    if path_outra_sim is not None:
+        atendimentos2 = load_atendimentos(path_outra_sim)
+        scale2, dados_count2, _ = count_per_class(atendimentos2)
+        plt.plot(scale2, dados_count2)
+        plt.legend(['Dados de Validação', 'Dados de treinamento'])
+
+    plt.ylabel('Porcentagem de atendimentos')
     plt.xlabel('Duracao (pontos NAS)')
     plt.title('Atividade 2: 4.3 pontos ~ 62 min')
-    plt.vlines([media-1, media+1], 0, max(dados_count), colors='k')
-    plt.vlines(media, 0, max(dados_count), colors='r')
+    # plt.vlines([media-1, media+1], 0, max(dados_count), colors='k')
+    # plt.vlines(media, 0, max(dados_count), colors='r')
     plt.show()
+
+
+def comparacao_distr_estat():
+    # x-axis ranges from -3 and 3 with .001 steps
+    x = np.arange(-0, 10, 0.01)
+
+    plt.plot(x, stats.norm.pdf(x, 5, 1)*100)  # (x, mean, std dev)
+    # plt.plot(x, stats.expon.pdf(x, 5, 1)*100)  # (x, loc, scale)
+    # plt.plot(x, stats.lognorm.pdf(x, 1, 5, 1)*100)  # (x, s, loc, scale)
+    plt.plot(x, stats.t.pdf(x, 3, 5, 1)*100)  # (x, degr freed (v), loc, scale)
+
+    plt.legend(['Normal', 'T Student'])
+    # plt.legend(['Normal', 'Exponencial', 'Lognormal', 'T Student'])
+    plt.ylabel('Porcentagem de atendimentos')
+    plt.xlabel('Duracao (pontos NAS)')
+    plt.show()
+
+    # error_norm = [(0-b)**2 for b in data_norm]
+    # error_expo = [(0-b)**2 for b in data_expon]
+    # plt.plot(error_norm)
+    # plt.plot(error_expo)
+    # plt.show()
 
 
 if __name__ == '__main__':
 
-    nova_simulacao = False
-    simulacao_path = 'simulacoes/simulacao2'
+    nova_simulacao = True
+    simulacao_path = 'simulacoes/simulacao3'
     if nova_simulacao:
-        pacientes = simular_pacientes(50)
+        pacientes = simular_pacientes(20)
         data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
-        total_dias = 365
-        enfermeiros = simular_enfermeiros(7*50)
-        tecnicos = simular_tecnicos(10*50)
+        total_dias = 30
+        enfermeiros = simular_enfermeiros(7*20)
+        tecnicos = simular_tecnicos(10*20)
         horas_turno = 12
-        atendimentos = simular_atendimentos()
+        atendimentos = simular_atendimentos(distribuicao='exp')
         salvar_simulacao()
 
     else:
-        pacientes = load_pacientes()
-        data_inicio_sim = load_data_inicio_sim()
-        total_dias = load_total_dias()
-        enfermeiros = load_enfermeiros()
-        tecnicos = load_tecnicos()
-        horas_turno = load_horas_turno()
-        atendimentos = load_atendimentos()
+        pacientes = load_pacientes(simulacao_path)
+        data_inicio_sim = load_data_inicio_sim(simulacao_path)
+        total_dias = load_total_dias(simulacao_path)
+        enfermeiros = load_enfermeiros(simulacao_path)
+        tecnicos = load_tecnicos(simulacao_path)
+        horas_turno = load_horas_turno(simulacao_path)
+        atendimentos = load_atendimentos(simulacao_path)
         Diagnosticos.add_atividades_faltantes()
 
     # exportar_ativs_por_diag()  # usado pra nn_classification
     # exportar_duracao_ativs_por_diag()  # usado pra nn_regression
     # plot_num_ativ_por_diag()
-    plot_distribuicao()
-    # calcular_resultados(recalcular_all=False)
+    plot_distribuicao_dados(simulacao_path, path_outra_sim='simulacoes/simulacao1')
+    calcular_resultados(recalcular_all=True)
+    comparacao_distr_estat()
 
     # exportar_enfermeiros()
     # exportar_pacientes()
