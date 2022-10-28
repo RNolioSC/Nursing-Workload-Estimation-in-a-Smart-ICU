@@ -113,3 +113,10 @@ Index = {
     'queimado': Queimado,
     'trauma': Trauma,
 }
+
+LOS = {  # length of stay [media, dp]
+    'desconhecido': [10.2, 25.3],  # https://www.hindawi.com/journals/bmri/2018/9438046/
+    'covid-19': [15.35, 14.49],  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9472334/
+    'queimado': [15, 5],  # https://www.scielo.br/j/reben/a/tp6z6WHdwYmFv5HJtdMdWty/?lang=en
+    'trauma':  [27.2, 24.0]  # https://d-nb.info/1097891240/34
+}

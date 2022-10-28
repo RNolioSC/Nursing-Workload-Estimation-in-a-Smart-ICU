@@ -204,16 +204,35 @@ def simular_tecnicos(quantidade):
 
 
 def simular_atendimentos(distribuicao):
-
     dias = []
     for i in range(0, total_dias):
         dias.append(data_inicio_sim + datetime.timedelta(i))
 
+    pacientes_ativos = len(pacientes)
     atendimentos = []
-    for paciente in pacientes:
-        print('Paciente: ' + str(paciente))
+    for dia in dias:
+        print('Dia: ' + str(dia.date()))
 
-        for dia in dias:
+        for _ in range(leitos - pacientes_ativos):  # leitos disponiveis
+            print('leitos disponiveis=' + str(leitos - pacientes_ativos))
+            if random.random() > 0.25:  # preencher leito
+                nome = 'paciente' + str(pacientes[-1].get_codigo() + 1)
+                diagnostico = random.choice(list(Diagnosticos.Index.keys()))
+                [media_los, dp_los] = Diagnosticos.LOS[diagnostico]
+                los_days = int(round(abs(stats.norm.rvs(media_los, dp_los))))
+                data_alta = data_inicio_sim + datetime.timedelta(days=los_days)
+                paciente = Paciente(pacientes[-1].get_codigo() + 1, nome, diagnostico, dia, data_alta)
+                pacientes.append(paciente)
+                pacientes_ativos += 1
+                print('preenchido leito')
+
+        for paciente in pacientes:
+            if dia > paciente.data_alta:
+                continue
+            if dia.date() == paciente.data_alta.date():
+                pacientes_ativos -= 1
+                print('alta de paciente')
+
             atividades = escolher_atividades(paciente.get_diagnostico())
             lista_nas = simular_nas(atividades, distribuicao)
 
@@ -310,12 +329,17 @@ def exportar_enfermeiros():
     return
 
 
-def simular_pacientes(quantidade):
+def simular_pacientes(quantidade, leitos, data_inicio_sim):
+    if quantidade > leitos:
+        raise Exception('Leitos insuficientes!')
     pacientes = []
     for j in range(quantidade):
         nome = 'paciente' + str(j + 1)
         diagnostico = random.choice(list(Diagnosticos.Index.keys()))
-        paciente = Paciente(j+1, nome, diagnostico)
+        [media_los, dp_los] = Diagnosticos.LOS[diagnostico]
+        los_days = int(round(abs(stats.norm.rvs(media_los, dp_los))))
+        data_alta = data_inicio_sim + datetime.timedelta(days=los_days)
+        paciente = Paciente(j+1, nome, diagnostico, data_inicio_sim, data_alta)
         pacientes.append(paciente)
 
     return pacientes
@@ -461,6 +485,8 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
         for dia in dias:
             t_parcial = 0.0
             for paciente in pacientes:
+                if not (paciente.data_alta >= dia >= paciente.data_admissao):
+                    continue
                 probabs = Diagnosticos.Index[paciente.get_diagnostico()]
                 for atividade in probabs:
                     t_parcial += probabs[atividade] * PontosNAS[atividade]
@@ -487,7 +513,17 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
         resultado_nn_classif = []
         for dia in dias:
             t_parcial = 0.0
-            diagnosticos = [p.get_diagnostico() for p in pacientes]
+
+            if dia == datetime.datetime(year=2022, month=2, day=14):
+                pass
+            pacientes_do_dia = []
+            for paciente in pacientes:
+                if paciente.data_alta >= dia >= paciente.data_admissao:
+                    pacientes_do_dia.append(paciente)
+            diagnosticos = [p.get_diagnostico() for p in pacientes_do_dia]
+
+            if len(pacientes_do_dia) < 2:
+                pass
             all_atividades = nn_classif_evaluate_batch(diagnosticos, simulacao_path)
             print("nn_classif_evaluate: dia=", dia.date())
 
@@ -504,7 +540,11 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
         resultado_nn_regression = []
         for dia in dias:
             t_parcial = 0.0
-            diagnosticos = [p.get_diagnostico() for p in pacientes]
+            pacientes_do_dia = []
+            for paciente in pacientes:
+                if paciente.data_alta >= dia >= paciente.data_admissao:
+                    pacientes_do_dia.append(paciente)
+            diagnosticos = [p.get_diagnostico() for p in pacientes_do_dia]
             all_atividades = nn_regression_evaluate_batch(diagnosticos, simulacao_path)
             print("nn_regress_evaluate: dia=", dia.date())
 
@@ -789,13 +829,14 @@ if __name__ == '__main__':
     nova_simulacao = True
     simulacao_path = 'simulacoes/simulacao3'
     if nova_simulacao:
-        pacientes = simular_pacientes(20)
         data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
-        total_dias = 30
+        total_dias = 100
+        leitos = 5
+        pacientes = simular_pacientes(5, leitos, data_inicio_sim)
         enfermeiros = simular_enfermeiros(7*20)
         tecnicos = simular_tecnicos(10*20)
         horas_turno = 12
-        atendimentos = simular_atendimentos(distribuicao='exp')
+        atendimentos = simular_atendimentos(distribuicao='norm')
         salvar_simulacao()
 
     else:
