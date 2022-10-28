@@ -449,8 +449,9 @@ def load_result_nn_regression():
         return pickle.load(f)
 
 
-def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_sim=False, recalcular_nn_classif=False,
-                        recalcular_nn_regression=False):
+def calcular_resultados(recalcular_all=True, recalcular_teo=False, recalcular_sim=False, recalcular_nn_classif=False,
+                        recalcular_nn_regression=False, plot_all=True, plot_sim=False, plot_nn_class=False,
+                        plot_nn_reg=False):
     dias = []
     for i in range(0, total_dias):
         dias.append(data_inicio_sim + datetime.timedelta(i))
@@ -470,93 +471,85 @@ def calcular_resultados(recalcular_all=False, recalcular_teo=False, recalcular_s
         resultado_teorico = load_result_teo()
 
     # resultados simulado:
-    if recalcular_sim or recalcular_all:
-        resultado_simulado = []
-        for dia in dias:
-            t_parcial = 0.0
-            for atendimento in atendimentos:
-                if atendimento.get_diaHoraInicio().date() == dia.date():
-                    t_parcial += float(atendimento.get_pontuacao_str())
-            resultado_simulado.append(t_parcial)
-        salvar_result_sim(resultado_simulado)
-    else:
-        resultado_simulado = load_result_sim()
+    if plot_all or plot_sim:
+        if recalcular_sim or recalcular_all:
+            resultado_simulado = []
+            for dia in dias:
+                t_parcial = 0.0
+                for atendimento in atendimentos:
+                    if atendimento.get_diaHoraInicio().date() == dia.date():
+                        t_parcial += float(atendimento.get_pontuacao_str())
+                resultado_simulado.append(t_parcial)
+            salvar_result_sim(resultado_simulado)
+        else:
+            resultado_simulado = load_result_sim()
 
     # resultados da rede neural de classificacao
-    if recalcular_nn_classif or recalcular_all:
-        resultado_nn_classif = []
-        for dia in dias:
-            t_parcial = 0.0
-            diagnosticos = [p.get_diagnostico() for p in pacientes]
-            all_atividades = nn_classif_evaluate_batch(diagnosticos, simulacao_path)
-            print("nn_classif_evaluate: dia=", dia.date())
+    if plot_all or plot_nn_class:
+        if recalcular_nn_classif or recalcular_all:
+            resultado_nn_classif = []
+            for dia in dias:
+                t_parcial = 0.0
+                diagnosticos = [p.get_diagnostico() for p in pacientes]
+                all_atividades = nn_classif_evaluate_batch(diagnosticos, simulacao_path)
+                print("nn_classif_evaluate: dia=", dia.date())
 
-            for atividades in all_atividades:  # [1a,2,3,...]
-                for atividade in atividades:
-                    t_parcial += PontosNAS[atividade]
-            resultado_nn_classif.append(t_parcial)
-        salvar_result_nn_classif(resultado_nn_classif)
-    else:
-        resultado_nn_classif = load_result_nn_classif()
+                for atividades in all_atividades:  # [1a,2,3,...]
+                    for atividade in atividades:
+                        t_parcial += PontosNAS[atividade]
+                resultado_nn_classif.append(t_parcial)
+            salvar_result_nn_classif(resultado_nn_classif)
+        else:
+            resultado_nn_classif = load_result_nn_classif()
 
     # resultados da rede neural de regressao
-    if recalcular_nn_regression or recalcular_all:
-        resultado_nn_regression = []
-        for dia in dias:
-            t_parcial = 0.0
-            diagnosticos = [p.get_diagnostico() for p in pacientes]
-            all_atividades = nn_regression_evaluate_batch(diagnosticos, simulacao_path)
-            print("nn_regress_evaluate: dia=", dia.date())
+    if plot_all or plot_nn_reg:
+        if recalcular_nn_regression or recalcular_all:
+            resultado_nn_regression = []
+            for dia in dias:
+                t_parcial = 0.0
+                diagnosticos = [p.get_diagnostico() for p in pacientes]
+                all_atividades = nn_regression_evaluate_batch(diagnosticos, simulacao_path)
+                print("nn_regress_evaluate: dia=", dia.date())
 
-            for atividades in all_atividades:  # [duracao, ...]
-                for atividade in atividades:
-                    t_parcial += atividade
-            resultado_nn_regression.append(t_parcial)
-        salvar_result_nn_regression(resultado_nn_regression)
-    else:
-        resultado_nn_regression = load_result_nn_regression()
+                for atividades in all_atividades:  # [duracao, ...]
+                    for atividade in atividades:
+                        t_parcial += atividade
+                resultado_nn_regression.append(t_parcial)
+            salvar_result_nn_regression(resultado_nn_regression)
+        else:
+            resultado_nn_regression = load_result_nn_regression()
 
-    plt.plot(resultado_teorico)
-    plt.plot(resultado_simulado)
-    plt.plot(resultado_nn_classif)
-    plt.plot(resultado_nn_regression)
-    plt.ylabel('Pontos NAS')
-    plt.xlabel('Dia')
-    plt.legend(['Resultado Teórico', 'Resultado Simulado', 'Resultado RN Classificação', 'Resultado RN Regressão'])
-    plt.show()
-
-    teo_vs_sim = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_simulado)]
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    ax1.set_xlabel('Dia')
+    ax1.set_ylabel('Pontos NAS')
+    ax2.set_ylabel('Porcentagem')
+    ax1.plot(resultado_teorico)
     teo_vs_teo = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_teorico)]
-    teo_vs_nn_cl = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn_classif)]
-    teo_vs_nn_reg = [((y - x)*100)/x for x, y in zip(resultado_teorico, resultado_nn_regression)]
-    plt.plot(teo_vs_teo)
-    plt.plot(teo_vs_sim)
-    plt.plot(teo_vs_nn_cl)
-    plt.plot(teo_vs_nn_reg)
-    plt.ylabel('Porcentagem')
-    plt.xlabel('Dia')
-    plt.legend(['Resultado Teórico', 'Resultado Simulado', 'Resultado RN Classificação', 'Resultado RN Regressão'])
-    plt.show()
+    ax2.plot(teo_vs_teo, alpha=0)
+    legend = ['Resultado Teórico']
+    if plot_all or plot_sim:
+        # noinspection PyUnboundLocalVariable
+        ax1.plot(resultado_simulado)
+        teo_vs_sim = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_simulado)]
+        ax2.plot(teo_vs_sim, alpha=0)
+        legend.append('Resultado Simulado')
+    if plot_all or plot_nn_class:
+        # noinspection PyUnboundLocalVariable
+        ax1.plot(resultado_nn_classif)
+        teo_vs_nn_cl = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_nn_classif)]
+        ax2.plot(teo_vs_nn_cl, alpha=0)
+        legend.append('Resultado RN Classificação')
+    if plot_all or plot_nn_reg:
+        # noinspection PyUnboundLocalVariable
+        ax1.plot(resultado_nn_regression)
+        teo_vs_nn_reg = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_nn_regression)]
+        ax2.plot(teo_vs_nn_reg, alpha=0)
+        legend.append('Resultado RN Regressão')
 
-    # comparando com os resultados simulados
-    # diff_teo_sim = [(x-y) for x, y in zip(resultado_teorico, resultado_simulado)]
-    # diff_nn_reg_sim = [(x-y) for x, y in zip(resultado_nn_regression, resultado_simulado)]
-    # plt.plot(diff_teo_sim)
-    # plt.plot(diff_nn_reg_sim)
-    # plt.ylabel('Diferenca (pontos NAS)')
-    # plt.xlabel('Dia')
-    # plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
-    # plt.show()
-    #
-    # # em porcentagem comparado com resultado simulado
-    # diff_teo_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_teo_sim, resultado_simulado)]
-    # diff_nn_reg_sim_perc = [((y - x) * 100) / x for x, y in zip(diff_nn_reg_sim, resultado_simulado)]
-    # plt.plot(diff_teo_sim_perc)
-    # plt.plot(diff_nn_reg_sim_perc)
-    # plt.ylabel('Diferenca %')
-    # plt.xlabel('Dia')
-    # plt.legend(['Teorico menos simulado', 'Resultado NN Regressao menos simulado'])
-    # plt.show()
+    plt.legend(legend)
+    plt.show()
 
 
 def salvar_simulacao():
@@ -786,7 +779,7 @@ def comparacao_distr_estat():
 
 if __name__ == '__main__':
 
-    nova_simulacao = True
+    nova_simulacao = False
     simulacao_path = 'simulacoes/simulacao3'
     if nova_simulacao:
         pacientes = simular_pacientes(20)
@@ -795,7 +788,7 @@ if __name__ == '__main__':
         enfermeiros = simular_enfermeiros(7*20)
         tecnicos = simular_tecnicos(10*20)
         horas_turno = 12
-        atendimentos = simular_atendimentos(distribuicao='exp')
+        atendimentos = simular_atendimentos(distribuicao='norm')
         salvar_simulacao()
 
     else:
@@ -811,13 +804,12 @@ if __name__ == '__main__':
     # exportar_ativs_por_diag()  # usado pra nn_classification
     # exportar_duracao_ativs_por_diag()  # usado pra nn_regression
     # plot_num_ativ_por_diag()
-    plot_distribuicao_dados(simulacao_path, path_outra_sim='simulacoes/simulacao1')
-    calcular_resultados(recalcular_all=True)
-    comparacao_distr_estat()
+    # plot_distribuicao_dados(simulacao_path, path_outra_sim='simulacoes/simulacao1')
+    calcular_resultados(recalcular_all=True, plot_all=True, plot_sim=True)
+    # comparacao_distr_estat()
 
     # exportar_enfermeiros()
     # exportar_pacientes()
     # exportar_antendimentos(atendimentos)
     # exportar_antendimentos_nn(atendimentos)
     # exportar_horas_trabalhadas()
-    # TODO: CSV writting otimizar -- Dask

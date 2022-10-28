@@ -221,12 +221,11 @@ if __name__ == '__main__':
 
     # path pros dados a serem usados para o treinamento
     simulacao_path = 'simulacoes/simulacao1'
-
-    data_preprocessing()
+    if treinar:
+        data_preprocessing()
     dataset = genfromtxt(r'simulacoes/simulacao1/CSV/ativs_diag_prepr.csv', encoding='latin-1', delimiter=',')
 
     data_norm = normalize(dataset, axis=0, norm='max')
-
     X = data_norm[:, 0]
     Y = data_norm[:, 1:]  # [i, j)
 
@@ -257,6 +256,8 @@ if __name__ == '__main__':
 
     else:  # nao treinar
         model = keras.models.load_model('modelo_classificacao')
+        _, accuracy = model.evaluate(X, Y)
+        print('Accuracy: %.2f' % (accuracy * 100))
 
     # predictions = model.predict_classes(X)  # deprecated
     predict_y = model.predict(X)
@@ -309,20 +310,7 @@ if __name__ == '__main__':
                 predict_y[i][j] = 1
             else:
                 predict_y[i][j] = 0
-    # TODO: mostrar tabela com quantidade de falsos positivos/negativos.
-    # matrix = confusion_matrix(Y.argmax(axis=1), predict_y.argmax(axis=1))
-    # print(matrix)
-    #
-    # plt.matshow(tf.math.confusion_matrix(Y, predict_y))
-    # plt.show()
 
-    # confusion_matrix = confusion_matrix(Y.argmax(axis=1), predict_y.argmax(axis=1))
-    #
-    # cm_display = ConfusionMatrixDisplay(confusion_matrix=confusion_matrix, display_labels=[False, True])
-    # cm_display.plot()
-    # plt.show()
-    # fp = matrix[1, 0]
-    #
-    # print('False positives =', (fp/numpy.size(X))*100, '%')
-    # print('x[0].s=', numpy.size(X[0]))
+    # TODO: mostrar tabela com quantidade de falsos positivos/negativos.
+
 
