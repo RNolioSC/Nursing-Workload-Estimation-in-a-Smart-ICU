@@ -525,30 +525,34 @@ def calcular_resultados(recalcular_all=True, recalcular_teo=False, recalcular_si
     ax1.set_xlabel('Dia')
     ax1.set_ylabel('Pontos NAS')
     ax2.set_ylabel('Porcentagem')
-    ax1.plot(resultado_teorico)
+    handle, = ax1.plot(resultado_teorico)
     teo_vs_teo = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_teorico)]
     ax2.plot(teo_vs_teo, alpha=0)
     legend = ['Resultado Teórico']
+    handles = [handle]
     if plot_all or plot_sim:
         # noinspection PyUnboundLocalVariable
-        ax1.plot(resultado_simulado)
+        handle, = ax1.plot(resultado_simulado)
         teo_vs_sim = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_simulado)]
         ax2.plot(teo_vs_sim, alpha=0)
         legend.append('Resultado Simulado')
+        handles.append(handle)
     if plot_all or plot_nn_class:
         # noinspection PyUnboundLocalVariable
-        ax1.plot(resultado_nn_classif)
+        handle, = ax1.plot(resultado_nn_classif)
         teo_vs_nn_cl = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_nn_classif)]
         ax2.plot(teo_vs_nn_cl, alpha=0)
         legend.append('Resultado RN Classificação')
+        handles.append(handle)
     if plot_all or plot_nn_reg:
         # noinspection PyUnboundLocalVariable
-        ax1.plot(resultado_nn_regression)
+        handle, = ax1.plot(resultado_nn_regression)
         teo_vs_nn_reg = [((y - x) * 100) / x for x, y in zip(resultado_teorico, resultado_nn_regression)]
         ax2.plot(teo_vs_nn_reg, alpha=0)
         legend.append('Resultado RN Regressão')
+        handles.append(handle)
 
-    plt.legend(legend)
+    plt.legend(handles, legend)
     plt.show()
 
 
@@ -728,7 +732,7 @@ def count_per_class(atendimentos):
     return scale, dados_count, dados
 
 
-def plot_distribuicao_dados(simulacao_path, path_outra_sim=None):
+def plot_distribuicao_dados(path_outra_sim=None):
 
     scale, dados_count, dados = count_per_class(atendimentos)
 
@@ -770,12 +774,6 @@ def comparacao_distr_estat():
     plt.xlabel('Duracao (pontos NAS)')
     plt.show()
 
-    # error_norm = [(0-b)**2 for b in data_norm]
-    # error_expo = [(0-b)**2 for b in data_expon]
-    # plt.plot(error_norm)
-    # plt.plot(error_expo)
-    # plt.show()
-
 
 if __name__ == '__main__':
 
@@ -805,7 +803,7 @@ if __name__ == '__main__':
     # exportar_duracao_ativs_por_diag()  # usado pra nn_regression
     # plot_num_ativ_por_diag()
     # plot_distribuicao_dados(simulacao_path, path_outra_sim='simulacoes/simulacao1')
-    calcular_resultados(recalcular_all=True, plot_all=True, plot_sim=True)
+    calcular_resultados(recalcular_all=True, plot_all=False, plot_sim=True)
     # comparacao_distr_estat()
 
     # exportar_enfermeiros()
