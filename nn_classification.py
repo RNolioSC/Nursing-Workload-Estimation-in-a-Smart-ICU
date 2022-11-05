@@ -3,16 +3,11 @@ import numpy
 import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.preprocessing.text import text_to_word_sequence
-from keras.preprocessing.text import one_hot
 import time
 import keras
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import ConfusionMatrixDisplay
 import keras.metrics
 from sklearn.preprocessing import normalize
 import csv
-import tensorflow as tf
 import pickle
 from pontosNAS import PontosNAS
 
@@ -197,8 +192,6 @@ def evaluate_batch(diagnosticos, simulacao_path):
     model = keras.models.load_model('modelo_classificacao')
     diagnosticos_fl = [diagnostico_str_to_float(d, simulacao_path) for d in diagnosticos]
     atividades_fl = model.predict(numpy.array(diagnosticos_fl), verbose=0)
-    # atividades_fl = model(numpy.array(diagnosticos_fl))
-    # atividades_fl = numpy.array(atividades_fl).tolist()
 
     for x in range(0, len(atividades_fl)):
         for y in range(0, len(atividades_fl[0])):
@@ -211,6 +204,17 @@ def evaluate_batch(diagnosticos, simulacao_path):
     for i in atividades_fl:
         all_atividades.append(atividades_fl_to_str(i))
     return all_atividades
+
+
+def save_history(history):
+    with open('modelo_classificacao/history.bin', 'wb') as f:
+        pickle.dump(history.history, f)
+
+
+def load_history():
+    with open('modelo_classificacao/history.bin', 'rb') as f:
+        history = pickle.load(f)
+    return history
 
 
 if __name__ == '__main__':
@@ -235,20 +239,10 @@ if __name__ == '__main__':
         model.add(Dense(150, activation='tanh'))
         model.add(Dense(32, activation='sigmoid'))  # falar disto na discertacao, como desafio encontrado.
 
-        # relu eh boa quando tem muitos outliers
-        # fazer testes com varias funcoes de ativacao com o mesmo dataset
-        # classes balanceadas: raro no mundo real.
-        # mais importante: divisao treino / teste, crossvalidation com diferente distribuicao
-        # # parte experimental, testar com novas  distribuicoes
-        # cross-validation nao muda mto se nao usar distribuicao diferente.
-        # ciencia de dados: fica bom fazer analise descritiva de dados: media, mediana, quartis, formato dos dados:
-        # por diagnostico. eh um diagrama de duracao por diagnostico: X=atividades nas, Y= duracao.
-        # TODO: adicionar diagrama mostrando a distribuicao de dados
-
-        model.compile(loss='BinaryCrossentropy', optimizer='adam', metrics=['Precision'], loss_weights=list(PontosNAS.values()))
-        # precision: simply divides true_positives by the sum of true_positives and false_positives
-
+        model.compile(loss='BinaryCrossentropy', optimizer='adam', metrics=['Recall'], loss_weights=list(PontosNAS.values()))
         history = model.fit(X, Y, epochs=50, batch_size=100, validation_split=0.2)
+        save_history(history)
+        history = history.history
 
         _, accuracy = model.evaluate(X, Y)
         print('Accuracy: %.2f' % (accuracy * 100))
@@ -256,12 +250,11 @@ if __name__ == '__main__':
 
     else:  # nao treinar
         model = keras.models.load_model('modelo_classificacao')
+        history = load_history()
         _, accuracy = model.evaluate(X, Y)
-        print('Accuracy: %.2f' % (accuracy * 100))
+        print('Recall: %.2f' % (accuracy * 100))
 
-    # predictions = model.predict_classes(X)  # deprecated
     predict_y = model.predict(X)
-    # classes_y = numpy.argmax(predict_y, axis=1)
     print(Y)
 
     exemplo_x = [0, 1/3, 2/3, 3/3]
@@ -282,35 +275,25 @@ if __name__ == '__main__':
     tempof = time.time()
     print("tempo de execucao (s):", tempof - tempoi)
 
-    # TODO: fazer treinamento com uma simulacao e validacao com outra simulacao, eh bem importante. cross dataset
-    #  validation
-    # conlcusoes: limitacao: independente da distribuicao, a rede vai aprender com aquela distribuicao ( normal). se
-    # tiver uma simulacao com uma distribuicao pra treinamento, mas outra distribuicao pra testes. trabalhos futuros.
+    # graficos de acuracia e validacao
+    # noinspection PyUnboundLocalVariable
+    plt.plot(history['recall'])
+    plt.plot(history['val_recall'])
+    plt.ylabel('Recall')
+    plt.xlabel('Época')
+    plt.legend(['Treinamento', 'Teste'])
+    plt.show()
 
-    if treinar:  # TODO: save history
-        # graficos de acuracia e validacao
-        plt.plot(history.history['precision'])
-        plt.plot(history.history['val_precision'])
-        plt.ylabel('Verdadeiro Positivos')
-        plt.xlabel('Época')
-        plt.legend(['Treinamento', 'Teste'])
-        plt.show()
+    plt.plot(history['loss'])
+    plt.plot(history['val_loss'])
+    plt.ylabel('Perda')
+    plt.xlabel('Época')
+    plt.legend(['Treinamento', 'Teste'])
+    plt.show()
 
-        plt.plot(history.history['loss'])
-        plt.plot(history.history['val_loss'])
-        plt.ylabel('Perda')
-        plt.xlabel('Época')
-        plt.legend(['Treinamento', 'Teste'])
-        plt.show()
-
-    # print("False positives: ", keras.metrics.FalsePositives(thresholds=None, name=None, dtype=None).result().numpy())
     for i in range(0, len(predict_y)):
         for j in range(0, len(predict_y[0])):
             if predict_y[i][j] > 0.5:
                 predict_y[i][j] = 1
             else:
                 predict_y[i][j] = 0
-
-    # TODO: mostrar tabela com quantidade de falsos positivos/negativos.
-
-

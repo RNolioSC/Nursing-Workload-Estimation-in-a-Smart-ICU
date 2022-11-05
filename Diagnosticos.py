@@ -1,11 +1,6 @@
 from ProbabsNas import ProbabsNAS
 
 
-def prob_rel(atividade, valor):
-    # define um valor relativo, ie, um multiplicador
-    return valor*ProbabsNAS[atividade]
-
-
 def add_atividades_faltantes():
     for i in Index:
         diagnostico = Index[i]

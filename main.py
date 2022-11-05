@@ -13,7 +13,6 @@ from Paciente import Paciente
 from nn_classification import evaluate_batch as nn_classif_evaluate_batch
 from nn_regression import evaluate_batch as nn_regression_evaluate_batch
 import numpy as np
-from sklearn.metrics import mean_squared_error
 
 
 def escolher_atividades(diagnostico):
@@ -348,7 +347,6 @@ def exportar_horas_trabalhadas():
                 aux = [tecnico.get_codigo(), tecnico.get_tipo(), dia_trabalhado[0].strftime('%Y-%m-%d'),
                        dia_trabalhado[1]]
                 filewriter.writerow(aux)
-    # TODO: ajustar para quando a qdade de horas trabalhadas por dia for maior q 24h
     return
 
 
@@ -648,7 +646,6 @@ def plot_num_ativ_por_diag():
 
     plt.grid(axis='x', zorder=1)
     plt.show()
-    # TODO: add outro eixo com o num total de amostras, ie: list(n_ativs_trauma.values())
 
 
 def exportar_atendimentos(atendimentos):
@@ -706,14 +703,13 @@ def exportar_duracao_ativs_por_diag():
             filewriter.writerow(linha)
 
 
-def count_per_class(atendimentos):
+def count_per_class(atendimentos, classes=75):
     dados = []
     for atendimento in atendimentos:
         if atendimento.get_atividade_str() == '2':
             dados.append(float(atendimento.get_pontuacao_str()))
 
     dados = sorted(dados)
-    classes = 75
     step = (max(dados) - min(dados)) / classes
     divider = min(dados) + step
     counter = 0
@@ -732,9 +728,9 @@ def count_per_class(atendimentos):
     return scale, dados_count, dados
 
 
-def plot_distribuicao_dados(path_outra_sim=None):
+def plot_distribuicao_dados(path_outra_sim=None, classes=75):
 
-    scale, dados_count, dados = count_per_class(atendimentos)
+    scale, dados_count, dados = count_per_class(atendimentos, classes)
 
     plt.plot(scale, dados_count)
     media = PontosNAS['2']
@@ -749,7 +745,7 @@ def plot_distribuicao_dados(path_outra_sim=None):
         atendimentos2 = load_atendimentos(path_outra_sim)
         scale2, dados_count2, _ = count_per_class(atendimentos2)
         plt.plot(scale2, dados_count2)
-        plt.legend(['Dados de Validação', 'Dados de treinamento'])
+        plt.legend(['Dados de Validação', 'Dados de Treinamento'])
 
     plt.ylabel('Porcentagem de atendimentos')
     plt.xlabel('Duracao (pontos NAS)')
@@ -760,16 +756,14 @@ def plot_distribuicao_dados(path_outra_sim=None):
 
 
 def comparacao_distr_estat():
-    # x-axis ranges from -3 and 3 with .001 steps
     x = np.arange(-0, 10, 0.01)
 
     plt.plot(x, stats.norm.pdf(x, 5, 1)*100)  # (x, mean, std dev)
-    # plt.plot(x, stats.expon.pdf(x, 5, 1)*100)  # (x, loc, scale)
-    # plt.plot(x, stats.lognorm.pdf(x, 1, 5, 1)*100)  # (x, s, loc, scale)
+    plt.plot(x, stats.expon.pdf(x, 5, 1)*100)  # (x, loc, scale)
+    plt.plot(x, stats.lognorm.pdf(x, 1, 5, 1)*100)  # (x, s, loc, scale)
     plt.plot(x, stats.t.pdf(x, 3, 5, 1)*100)  # (x, degr freed (v), loc, scale)
 
-    plt.legend(['Normal', 'T Student'])
-    # plt.legend(['Normal', 'Exponencial', 'Lognormal', 'T Student'])
+    plt.legend(['Normal', 'Exponencial', 'Lognormal', 'T Student'])
     plt.ylabel('Porcentagem de atendimentos')
     plt.xlabel('Duracao (pontos NAS)')
     plt.show()
@@ -778,15 +772,16 @@ def comparacao_distr_estat():
 if __name__ == '__main__':
 
     nova_simulacao = False
-    simulacao_path = 'simulacoes/simulacao3'
+    simulacao_path = 'simulacoes/simulacao4'
+    # simulacoes salvas: 1 e 2: normal, 3: t, 4: exp
     if nova_simulacao:
-        pacientes = simular_pacientes(20)
+        pacientes = simular_pacientes(50)
         data_inicio_sim = datetime.datetime(year=2022, month=1, day=1)
-        total_dias = 30
-        enfermeiros = simular_enfermeiros(7*20)
-        tecnicos = simular_tecnicos(10*20)
+        total_dias = 365
+        enfermeiros = simular_enfermeiros(7*50)
+        tecnicos = simular_tecnicos(10*50)
         horas_turno = 12
-        atendimentos = simular_atendimentos(distribuicao='norm')
+        atendimentos = simular_atendimentos(distribuicao='t')
         salvar_simulacao()
 
     else:
@@ -802,10 +797,9 @@ if __name__ == '__main__':
     # exportar_ativs_por_diag()  # usado pra nn_classification
     # exportar_duracao_ativs_por_diag()  # usado pra nn_regression
     # plot_num_ativ_por_diag()
-    # plot_distribuicao_dados(simulacao_path, path_outra_sim='simulacoes/simulacao1')
-    calcular_resultados(recalcular_all=True, plot_all=False, plot_sim=True)
     # comparacao_distr_estat()
-
+    plot_distribuicao_dados(path_outra_sim='simulacoes/simulacao1', classes=220)
+    calcular_resultados(recalcular_all=True, plot_all=True)
     # exportar_enfermeiros()
     # exportar_pacientes()
     # exportar_antendimentos(atendimentos)

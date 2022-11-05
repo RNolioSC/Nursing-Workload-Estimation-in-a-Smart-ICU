@@ -3,17 +3,11 @@ import numpy
 import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.preprocessing.text import text_to_word_sequence
-from keras.preprocessing.text import one_hot
 import time
 import keras
-from sklearn.metrics import confusion_matrix
 import keras.metrics
-from sklearn.preprocessing import normalize
 import csv
-import tensorflow as tf
 import pickle
-from pontosNAS import PontosNAS
 
 
 def data_preprocessing():
@@ -128,16 +122,25 @@ def evaluate_batch(diagnosticos, simulacao_path):
     model = keras.models.load_model('modelo_regressao')
     diagnosticos_fl = [diagnostico_str_to_float(d, simulacao_path) for d in diagnosticos]
     duracao_ativs = model.predict(numpy.array(diagnosticos_fl), verbose=0)
-    # atividades_fl = model(numpy.array(diagnosticos_fl))
-    # atividades_fl = numpy.array(atividades_fl).tolist()
 
     return duracao_ativs
 
 
+def save_history(history):
+    with open('modelo_regressao/history.bin', 'wb') as f:
+        pickle.dump(history.history, f)
+
+
+def load_history():
+    with open('modelo_regressao/history.bin', 'rb') as f:
+        history = pickle.load(f)
+    return history
+
+
 if __name__ == '__main__':
 
+    treinar = False
     # Treinamento da rede neural
-
     tempoi = time.time()
 
     # path pros dados a serem usados para o treinamento
@@ -152,23 +155,24 @@ if __name__ == '__main__':
     X = data_norm[:, 0]  # diagnostico
     Y = data_norm[:, 1:]  # [i, j) [duracao por atividade]
 
-    model = Sequential()
-    model.add(Dense(150, input_dim=1, activation='tanh'))  # testar com diferentes eh so um plus. relu funciona bem
-    model.add(Dense(150, activation='tanh'))
-    model.add(Dense(23))  # falar disto na discertacao, como desafio encontrado.
+    if treinar:
+        model = Sequential()
+        model.add(Dense(150, input_dim=1, activation='tanh'))
+        model.add(Dense(150, activation='tanh'))
+        model.add(Dense(23))
 
-    model.compile(loss='mean_squared_error', optimizer='adam')
-    history = model.fit(X, Y, epochs=50, batch_size=100, validation_split=0.2)
-    # print(history) # 'loss', 'val_loss'
+        model.compile(loss='mean_squared_error', optimizer='adam')
+        history = model.fit(X, Y, epochs=50, batch_size=100, validation_split=0.2)
+        save_history(history)
+        history = history.history
+        model.save('modelo_regressao')
 
-    model.evaluate(X, Y)
+    else:  # nao treinar
+        model = keras.models.load_model('modelo_regressao')
+        history = load_history()
+        # model.evaluate(X, Y)
 
-    # predictions = model.predict_classes(X)  # deprecated
     predict_y = model.predict(X)
-    # classes_y = numpy.argmax(predict_y, axis=1)
-    # print(Y)
-    # print(predict_y)
-    # print(classes_y)
     print('predict diagnosticos:')
     aux = model.predict([0, 1/3, 2/3, 3/3])
     print(aux)
@@ -176,11 +180,9 @@ if __name__ == '__main__':
     tempof = time.time()
     print("tempo de execucao (s):", tempof - tempoi)
 
-    model.save('modelo_regressao')
-
     # graficos de acuracia e validacao
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
+    plt.plot(history['loss'])
+    plt.plot(history['val_loss'])
     plt.ylabel('Erro quadrático médio')
     plt.xlabel('Época')
     plt.legend(['Treinamento', 'Teste'])
